@@ -24,8 +24,6 @@ The **Discord Random Image Bot** is your go-to tool for spicing up your Discord 
   - [🚀 Run the Docker Container](#-run-the-docker-container)
 - [🎨 Customization](#-customization)
 - [🐞 Troubleshooting](#-troubleshooting)
-- [🤝 Contributing](#-contributing)
-- [📄 License](#-license)
 
 ## 📦 Prerequisites
 
