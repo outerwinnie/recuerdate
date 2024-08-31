@@ -21,7 +21,8 @@ namespace DiscordBotExample
         private static ulong _channelId;
         private static string _fileId;
         private static string _credentialsPath;
-        private static TimeSpan _postTime;
+        private static TimeSpan _postTimeSpain;
+        private static TimeZoneInfo _spainTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Central European Standard Time");
 
         static async Task Main(string[] args)
         {
@@ -52,7 +53,7 @@ namespace DiscordBotExample
             }
 
             // Parse post time
-            if (!TimeSpan.TryParse(postTimeStr, out _postTime))
+            if (!TimeSpan.TryParse(postTimeStr, out _postTimeSpain))
             {
                 Console.WriteLine("Invalid POST_TIME format. It must be in the format HH:mm:ss.");
                 return;
@@ -121,15 +122,18 @@ namespace DiscordBotExample
         private static async Task ScheduleNextPost()
         {
             var now = DateTime.UtcNow;
-            var nextPostTime = DateTime.Today.Add(_postTime);
+            var spainTime = TimeZoneInfo.ConvertTimeFromUtc(now, _spainTimeZone);
+            var nextPostTimeSpain = DateTime.Today.Add(_postTimeSpain);
 
-            if (nextPostTime <= now)
+            if (nextPostTimeSpain <= spainTime)
             {
                 // If the time has already passed for today, schedule for tomorrow
-                nextPostTime = nextPostTime.AddDays(1);
+                nextPostTimeSpain = nextPostTimeSpain.AddDays(1);
             }
 
-            var delay = nextPostTime - now;
+            var nextPostTimeUtc = TimeZoneInfo.ConvertTimeToUtc(nextPostTimeSpain, _spainTimeZone);
+            var delay = nextPostTimeUtc - now;
+
             Console.WriteLine($"Scheduling next post in {delay.TotalMinutes} minutes.");
 
             await Task.Delay(delay);
