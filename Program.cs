@@ -123,7 +123,9 @@ namespace DiscordBotExample
         {
             var nowUtc = DateTime.UtcNow;
             var spainTime = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, _spainTimeZone);
-            var nextPostTimeSpain = DateTime.Today.Add(_postTimeSpain);
+            
+            // Specify that nextPostTimeSpain is unspecified in terms of kind because we will convert it to a specific time zone
+            var nextPostTimeSpain = DateTime.SpecifyKind(DateTime.Today.Add(_postTimeSpain), DateTimeKind.Unspecified);
 
             if (nextPostTimeSpain <= spainTime)
             {
@@ -131,14 +133,11 @@ namespace DiscordBotExample
                 nextPostTimeSpain = nextPostTimeSpain.AddDays(1);
             }
 
-            // Ensure that nextPostTimeSpain is in local time
-            var nextPostTimeSpainLocal = DateTime.SpecifyKind(nextPostTimeSpain, DateTimeKind.Local);
-
-            // Convert the local time to UTC
-            var nextPostTimeUtc = TimeZoneInfo.ConvertTimeToUtc(nextPostTimeSpainLocal, _spainTimeZone);
+            // Convert the unspecified time to Spain time zone and then to UTC
+            nextPostTimeSpain = TimeZoneInfo.ConvertTimeToUtc(nextPostTimeSpain, _spainTimeZone);
 
             // Calculate the delay
-            var delay = nextPostTimeUtc - nowUtc;
+            var delay = nextPostTimeSpain - nowUtc;
 
             Console.WriteLine($"Scheduling next post in {delay.TotalMinutes} minutes.");
 
