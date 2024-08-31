@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "bV8cpwgR9ogZZpmmphIxdPC3ZMhlgvJ/QKRWP4lbizT1zGcbIRwkG84Mv3+Q/NtSbFrm2yE8ST02xiXRlWxFuQ==",
+  "dgSpecHash": "8L4McY806g6gaWyJ3N7rwakc1O/2wbVwtmjPlu8A5GWQBuYsZdNi3tecXUHRcjJgzaDu7Yn+CZcgGsaN4aqxeg==",
   "success": true,
-  "projectFilePath": "D:\\Backup\\Projectos\\Bots\\Recuerdense-Bot\\Recuerdense-Bot\\Recuerdense-Bot.csproj",
+  "projectFilePath": "D:\\Winnie\\Documentos\\recuerdate\\Recuerdense-Bot.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Winnie\\.nuget\\packages\\csvhelper\\33.0.1\\csvhelper.33.0.1.nupkg.sha512",
     "C:\\Users\\Winnie\\.nuget\\packages\\discord.net\\3.15.3\\discord.net.3.15.3.nupkg.sha512",
