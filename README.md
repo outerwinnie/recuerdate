@@ -105,7 +105,7 @@ Make sure to replace `"YOUR_BOT_TOKEN"`, `"YOUR_CHANNEL_ID"`, and `"YOUR_FILE_ID
 
 - **Bot Not Posting?**:
   - Ensure the bot has the correct permissions in the Discord channel.
-  - Check the bot’s logs for any error messages.
+  - Check the bot’s logs for any error messages
 
 - **Can't Access Google Drive File?**:
   - Double-check that the file is shared with the correct Google service account.
