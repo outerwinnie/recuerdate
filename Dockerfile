@@ -20,7 +20,7 @@ ENV DISCORD_BOT_TOKEN=""
 ENV DISCORD_CHANNEL_ID=""
 ENV GOOGLE_DRIVE_FILE_ID=""
 ENV GOOGLE_CREDENTIALS_PATH="/app/credentials.json"
-ENV POST_INTERVAL_SECONDS="15"
+ENV POST_TIME="20:00:00"
 
 # Entry point for the application
 ENTRYPOINT ["dotnet", "Recuerdense-Bot.dll"]
