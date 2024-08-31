@@ -18,11 +18,11 @@ namespace DiscordBotExample
         private static List<string> _imageUrls;
         private static Random _random = new Random();
         private static DiscordSocketClient _client;
-        private static System.Timers.Timer _timer;
         private static ulong _channelId;
         private static string _fileId;
         private static string _credentialsPath;
-        private static int _postIntervalSeconds;
+        private static TimeSpan _postTimeSpain;
+        private static TimeZoneInfo _spainTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Central European Standard Time");
 
         static async Task Main(string[] args)
         {
@@ -31,17 +31,17 @@ namespace DiscordBotExample
             var channelIdStr = Environment.GetEnvironmentVariable("DISCORD_CHANNEL_ID");
             _fileId = Environment.GetEnvironmentVariable("GOOGLE_DRIVE_FILE_ID");
             _credentialsPath = Environment.GetEnvironmentVariable("GOOGLE_CREDENTIALS_PATH");
-            var intervalStr = Environment.GetEnvironmentVariable("POST_INTERVAL_SECONDS");
+            var postTimeStr = Environment.GetEnvironmentVariable("POST_TIME");
 
-            // Check if token, channelId, fileId, credentialsPath, or interval is null or empty
-            if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(channelIdStr) || string.IsNullOrEmpty(_fileId) || string.IsNullOrEmpty(_credentialsPath) || string.IsNullOrEmpty(intervalStr))
+            // Check if token, channelId, fileId, credentialsPath, or postTime is null or empty
+            if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(channelIdStr) || string.IsNullOrEmpty(_fileId) || string.IsNullOrEmpty(_credentialsPath) || string.IsNullOrEmpty(postTimeStr))
             {
                 Console.WriteLine("Environment variables are not set correctly.");
                 Console.WriteLine($"DISCORD_BOT_TOKEN: {(string.IsNullOrEmpty(token) ? "Not set" : "Set")}");
                 Console.WriteLine($"DISCORD_CHANNEL_ID: {(string.IsNullOrEmpty(channelIdStr) ? "Not set" : "Set")}");
                 Console.WriteLine($"GOOGLE_DRIVE_FILE_ID: {(string.IsNullOrEmpty(_fileId) ? "Not set" : "Set")}");
                 Console.WriteLine($"GOOGLE_CREDENTIALS_PATH: {(string.IsNullOrEmpty(_credentialsPath) ? "Not set" : "Set")}");
-                Console.WriteLine($"POST_INTERVAL_SECONDS: {(string.IsNullOrEmpty(intervalStr) ? "Not set" : "Set")}");
+                Console.WriteLine($"POST_TIME: {(string.IsNullOrEmpty(postTimeStr) ? "Not set" : "Set")}");
                 return;
             }
 
@@ -52,10 +52,10 @@ namespace DiscordBotExample
                 return;
             }
 
-            // Parse post interval
-            if (!int.TryParse(intervalStr, out _postIntervalSeconds) || _postIntervalSeconds <= 0)
+            // Parse post time
+            if (!TimeSpan.TryParse(postTimeStr, out _postTimeSpain))
             {
-                Console.WriteLine("Invalid POST_INTERVAL_SECONDS format. It must be a positive integer.");
+                Console.WriteLine("Invalid POST_TIME format. It must be in the format HH:mm:ss.");
                 return;
             }
 
@@ -115,18 +115,38 @@ namespace DiscordBotExample
                 return;
             }
 
-            // Create and configure the timer
-            _timer = new System.Timers.Timer
+            // Schedule the first post
+            await ScheduleNextPost();
+        }
+
+        private static async Task ScheduleNextPost()
+        {
+            var nowUtc = DateTime.UtcNow;
+            var spainTime = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, _spainTimeZone);
+            
+            // Specify that nextPostTimeSpain is unspecified in terms of kind because we will convert it to a specific time zone
+            var nextPostTimeSpain = DateTime.SpecifyKind(DateTime.Today.Add(_postTimeSpain), DateTimeKind.Unspecified);
+
+            if (nextPostTimeSpain <= spainTime)
             {
-                Interval = _postIntervalSeconds * 1000, // Convert seconds to milliseconds
-                AutoReset = true, // Timer should repeat
-                Enabled = true
-            };
+                // If the time has already passed for today, schedule for tomorrow
+                nextPostTimeSpain = nextPostTimeSpain.AddDays(1);
+            }
 
-            _timer.Elapsed += async (sender, e) => await PostRandomImageUrl();
+            // Convert the unspecified time to Spain time zone and then to UTC
+            nextPostTimeSpain = TimeZoneInfo.ConvertTimeToUtc(nextPostTimeSpain, _spainTimeZone);
 
-            // Post an initial message
+            // Calculate the delay
+            var delay = nextPostTimeSpain - nowUtc;
+
+            Console.WriteLine($"Scheduling next post in {delay.TotalMinutes} minutes.");
+
+            await Task.Delay(delay);
+
             await PostRandomImageUrl();
+
+            // Schedule the next post
+            await ScheduleNextPost();
         }
 
         private static async Task<string> DownloadCsvFromGoogleDrive()
