@@ -1188,11 +1188,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\Backup\\Projectos\\Bots\\Recuerdense-Bot\\Recuerdense-Bot\\Recuerdense-Bot.csproj",
+      "projectUniqueName": "D:\\Winnie\\Documentos\\recuerdate\\Recuerdense-Bot.csproj",
       "projectName": "Recuerdense-Bot",
-      "projectPath": "D:\\Backup\\Projectos\\Bots\\Recuerdense-Bot\\Recuerdense-Bot\\Recuerdense-Bot.csproj",
+      "projectPath": "D:\\Winnie\\Documentos\\recuerdate\\Recuerdense-Bot.csproj",
       "packagesPath": "C:\\Users\\Winnie\\.nuget\\packages\\",
-      "outputPath": "D:\\Backup\\Projectos\\Bots\\Recuerdense-Bot\\Recuerdense-Bot\\obj\\",
+      "outputPath": "D:\\Winnie\\Documentos\\recuerdate\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\Winnie\\AppData\\Roaming\\NuGet\\NuGet.Config"
