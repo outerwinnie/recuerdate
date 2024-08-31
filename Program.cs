@@ -91,7 +91,7 @@ namespace DiscordBotExample
                 using (var csv = new CsvReader(reader, new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)))
                 {
                     _imageUrls = csv.GetRecords<YourRecordClass>()
-                                    .Where(record => !string.IsNullOrWhiteSpace(record.image_url) && record.has_spoilers != "no")
+                                    .Where(record => !string.IsNullOrWhiteSpace(record.image_url) && record.has_spoilers != "yes")
                                     .Select(record => record.image_url.Trim())
                                     .ToList();
                 }
