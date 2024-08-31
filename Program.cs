@@ -121,8 +121,8 @@ namespace DiscordBotExample
 
         private static async Task ScheduleNextPost()
         {
-            var now = DateTime.UtcNow;
-            var spainTime = TimeZoneInfo.ConvertTimeFromUtc(now, _spainTimeZone);
+            var nowUtc = DateTime.UtcNow;
+            var spainTime = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, _spainTimeZone);
             var nextPostTimeSpain = DateTime.Today.Add(_postTimeSpain);
 
             if (nextPostTimeSpain <= spainTime)
@@ -131,8 +131,14 @@ namespace DiscordBotExample
                 nextPostTimeSpain = nextPostTimeSpain.AddDays(1);
             }
 
-            var nextPostTimeUtc = TimeZoneInfo.ConvertTimeToUtc(nextPostTimeSpain, _spainTimeZone);
-            var delay = nextPostTimeUtc - now;
+            // Ensure that nextPostTimeSpain is in local time
+            var nextPostTimeSpainLocal = DateTime.SpecifyKind(nextPostTimeSpain, DateTimeKind.Local);
+
+            // Convert the local time to UTC
+            var nextPostTimeUtc = TimeZoneInfo.ConvertTimeToUtc(nextPostTimeSpainLocal, _spainTimeZone);
+
+            // Calculate the delay
+            var delay = nextPostTimeUtc - nowUtc;
 
             Console.WriteLine($"Scheduling next post in {delay.TotalMinutes} minutes.");
 
