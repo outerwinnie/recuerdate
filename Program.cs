@@ -66,6 +66,7 @@ namespace DiscordBotExample
             await _client.LoginAsync(TokenType.Bot, token);
             await _client.StartAsync();
 
+            // Prevent application from closing
             await Task.Delay(-1);
         }
 
@@ -78,13 +79,14 @@ namespace DiscordBotExample
         private static async Task OnReady()
         {
             Console.WriteLine("Bot is connected.");
-            await RegisterCommandsAsync();
-            await ScheduleNextPost();
+
+            // Call asynchronous tasks without blocking
+            await Task.Run(() => RegisterCommandsAsync()).ConfigureAwait(false);
+            await Task.Run(() => ScheduleNextPost()).ConfigureAwait(false);
         }
 
         private static async Task RegisterCommandsAsync()
         {
-            // Register the command module
             await _commands.AddModuleAsync<CommandModule>(_services);
         }
 
