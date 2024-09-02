@@ -6,6 +6,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
+using Discord.Commands;
+using Discord.Rest;
 using CsvHelper;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Drive.v3;
@@ -23,6 +25,7 @@ namespace DiscordBotExample
         private static string _credentialsPath;
         private static TimeSpan _postTimeSpain;
         private static TimeZoneInfo _spainTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Central European Standard Time");
+        private static bool _isImageUrlsLoaded = false; // Flag to track if image URLs are loaded
 
         static async Task Main(string[] args)
         {
@@ -37,11 +40,6 @@ namespace DiscordBotExample
             if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(channelIdStr) || string.IsNullOrEmpty(_fileId) || string.IsNullOrEmpty(_credentialsPath) || string.IsNullOrEmpty(postTimeStr))
             {
                 Console.WriteLine("Environment variables are not set correctly.");
-                Console.WriteLine($"DISCORD_BOT_TOKEN: {(string.IsNullOrEmpty(token) ? "Not set" : "Set")}");
-                Console.WriteLine($"DISCORD_CHANNEL_ID: {(string.IsNullOrEmpty(channelIdStr) ? "Not set" : "Set")}");
-                Console.WriteLine($"GOOGLE_DRIVE_FILE_ID: {(string.IsNullOrEmpty(_fileId) ? "Not set" : "Set")}");
-                Console.WriteLine($"GOOGLE_CREDENTIALS_PATH: {(string.IsNullOrEmpty(_credentialsPath) ? "Not set" : "Set")}");
-                Console.WriteLine($"POST_TIME: {(string.IsNullOrEmpty(postTimeStr) ? "Not set" : "Set")}");
                 return;
             }
 
@@ -63,6 +61,7 @@ namespace DiscordBotExample
             _client = new DiscordSocketClient();
             _client.Log += Log;
             _client.Ready += OnReady;
+            _client.InteractionCreated += HandleInteractionAsync;
 
             // Start the bot
             await _client.LoginAsync(TokenType.Bot, token);
@@ -94,6 +93,8 @@ namespace DiscordBotExample
                                     .Where(record => !string.IsNullOrWhiteSpace(record.image_url) && record.has_spoilers != "yes")
                                     .Select(record => record.image_url.Trim())
                                     .ToList();
+
+                    _isImageUrlsLoaded = true; // Set flag to true when URLs are loaded
                 }
 
                 Console.WriteLine("Filtered URLs read from CSV:");
@@ -108,15 +109,60 @@ namespace DiscordBotExample
                 return;
             }
 
-            // Check if imageUrls is empty
-            if (_imageUrls.Count == 0)
-            {
-                Console.WriteLine("No valid URLs available. Exiting...");
-                return;
-            }
+            // Register commands
+            await RegisterCommandsAsync();
 
             // Schedule the first post
             await ScheduleNextPost();
+        }
+
+        private static async Task RegisterCommandsAsync()
+        {
+            var sendCommand = new SlashCommandBuilder()
+                .WithName("send")
+                .WithDescription("Send a random image from the list");
+
+            // Replace 'your_guild_id_here' with your actual guild ID
+            var guildId = ulong.Parse(Environment.GetEnvironmentVariable("GUILD_ID")); // Example: 123456789012345678
+            var guild = _client.GetGuild(guildId);
+
+            await guild.DeleteApplicationCommandsAsync(); // Clear existing commands in the guild
+            await _client.Rest.DeleteAllGlobalCommandsAsync(); // Optionally clear global commands
+            await guild.CreateApplicationCommandAsync(sendCommand.Build());
+
+            Console.WriteLine("Slash command /send registered for guild");
+        }
+
+        private static async Task HandleInteractionAsync(SocketInteraction interaction)
+        {
+            if (interaction is SocketSlashCommand command)
+            {
+                if (command.Data.Name == "send")
+                {
+                    await HandleSendCommandAsync(command);
+                }
+            }
+        }
+
+        private static async Task HandleSendCommandAsync(SocketSlashCommand command)
+        {
+            if (_isImageUrlsLoaded)
+            {
+                if (_imageUrls.Count > 0)
+                {
+                    int index = _random.Next(_imageUrls.Count);
+                    string randomUrl = _imageUrls[index];
+                    await command.RespondAsync(randomUrl);
+                }
+                else
+                {
+                    await command.RespondAsync("No URLs available.");
+                }
+            }
+            else
+            {
+                await command.RespondAsync("The bot is still loading data. Please try again later.");
+            }
         }
 
         private static async Task ScheduleNextPost()
@@ -204,12 +250,11 @@ namespace DiscordBotExample
                 Console.WriteLine("No URLs available.");
             }
         }
-    }
 
-    // Define a class that matches the CSV structure
-    public class YourRecordClass
-    {
-        public string image_url { get; set; }
-        public string has_spoilers { get; set; }
+        public class YourRecordClass
+        {
+            public string image_url { get; set; }
+            public string has_spoilers { get; set; }
+        }
     }
 }

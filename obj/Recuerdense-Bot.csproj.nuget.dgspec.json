@@ -50,6 +50,10 @@
               "target": "Package",
               "version": "[1.68.0.3508, )"
             },
+            "Microsoft.Extensions.DependencyInjection": {
+              "target": "Package",
+              "version": "[8.0.0, )"
+            },
             "System.Threading.Tasks": {
               "target": "Package",
               "version": "[4.3.0, )"
