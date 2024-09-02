@@ -6,6 +6,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
+using Discord.Commands;
+using Discord.Rest;
 using CsvHelper;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Drive.v3;
@@ -15,7 +17,7 @@ namespace DiscordBotExample
 {
     class Program
     {
-        private static List<string> _imageUrls = new List<string>();
+        private static List<string> _imageUrls;
         private static Random _random = new Random();
         private static DiscordSocketClient _client;
         private static ulong _channelId;
@@ -23,7 +25,7 @@ namespace DiscordBotExample
         private static string _credentialsPath;
         private static TimeSpan _postTimeSpain;
         private static TimeZoneInfo _spainTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Central European Standard Time");
-        private static bool _isImageUrlsLoaded = false;
+        private static bool _isImageUrlsLoaded = false; // Flag to track if image URLs are loaded
 
         static async Task Main(string[] args)
         {
@@ -34,7 +36,7 @@ namespace DiscordBotExample
             _credentialsPath = Environment.GetEnvironmentVariable("GOOGLE_CREDENTIALS_PATH");
             var postTimeStr = Environment.GetEnvironmentVariable("POST_TIME");
 
-            // Validate environment variables
+            // Check if token, channelId, fileId, credentialsPath, or postTime is null or empty
             if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(channelIdStr) || string.IsNullOrEmpty(_fileId) || string.IsNullOrEmpty(_credentialsPath) || string.IsNullOrEmpty(postTimeStr))
             {
                 Console.WriteLine("Environment variables are not set correctly.");
@@ -79,113 +81,7 @@ namespace DiscordBotExample
         {
             Console.WriteLine("Bot is connected.");
 
-            // Register commands
-            await RegisterCommandsAsync();
-
-            // Schedule the first post
-            await ScheduleNextPost();
-        }
-
-        private static async Task RegisterCommandsAsync()
-        {
-            var sendCommand = new SlashCommandBuilder()
-                .WithName("send")
-                .WithDescription("Send a random image from the list");
-
-            var guildId = ulong.Parse(Environment.GetEnvironmentVariable("GUILD_ID")); // Example: 123456789012345678
-            var guild = _client.GetGuild(guildId);
-
-            await guild.DeleteApplicationCommandsAsync(); // Clear existing commands in the guild
-            await _client.Rest.DeleteAllGlobalCommandsAsync(); // Optionally clear global commands
-            await guild.CreateApplicationCommandAsync(sendCommand.Build());
-
-            Console.WriteLine("Slash command /send registered for guild");
-        }
-
-        private static async Task HandleInteractionAsync(SocketInteraction interaction)
-        {
-            if (interaction is SocketSlashCommand command && command.Data.Name == "send")
-            {
-                await HandleSendCommandAsync(command);
-            }
-        }
-
-        private static async Task HandleSendCommandAsync(SocketSlashCommand command)
-        {
-            if (!_isImageUrlsLoaded)
-            {
-                await command.RespondAsync("The bot is still loading data. Please try again later.");
-                return;
-            }
-
-            if (_imageUrls.Count > 0)
-            {
-                string randomUrl = GetRandomImageUrl();
-                await command.RespondAsync(randomUrl);
-            }
-            else
-            {
-                await command.RespondAsync("No URLs available.");
-            }
-        }
-
-        private static string GetRandomImageUrl()
-        {
-            lock (_random) // Ensure thread safety if accessing from multiple threads
-            {
-                return _imageUrls[_random.Next(_imageUrls.Count)];
-            }
-        }
-
-        private static async Task ScheduleNextPost()
-        {
-            var nowUtc = DateTime.UtcNow;
-            var spainTime = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, _spainTimeZone);
-            
-            var nextPostTimeSpain = DateTime.SpecifyKind(DateTime.Today.Add(_postTimeSpain), DateTimeKind.Unspecified);
-
-            if (nextPostTimeSpain <= spainTime)
-            {
-                nextPostTimeSpain = nextPostTimeSpain.AddDays(1);
-            }
-
-            nextPostTimeSpain = TimeZoneInfo.ConvertTimeToUtc(nextPostTimeSpain, _spainTimeZone);
-            var delay = nextPostTimeSpain - nowUtc;
-
-            Console.WriteLine($"Scheduling next post in {delay.TotalMinutes} minutes.");
-
-            await Task.Delay(delay);
-
-            await PostRandomImageUrl();
-            await ScheduleNextPost();
-        }
-
-        private static async Task PostRandomImageUrl()
-        {
-            var channel = _client.GetChannel(_channelId) as IMessageChannel;
-
-            if (channel != null)
-            {
-                if (!_isImageUrlsLoaded)
-                {
-                    await channel.SendMessageAsync("The bot is still loading data. Please try again later.");
-                    return;
-                }
-
-                if (_imageUrls.Count > 0)
-                {
-                    string randomUrl = GetRandomImageUrl();
-                    await channel.SendMessageAsync(randomUrl);
-                }
-                else
-                {
-                    await channel.SendMessageAsync("No URLs available.");
-                }
-            }
-        }
-
-        private static async Task LoadImageUrls()
-        {
+            // Download and process the CSV file from Google Drive
             var csvData = await DownloadCsvFromGoogleDrive();
 
             if (csvData != null)
@@ -209,14 +105,101 @@ namespace DiscordBotExample
             }
             else
             {
-                Console.WriteLine("Failed to download or read the CSV file.");
+                Console.WriteLine("Failed to download or read the CSV file. Exiting...");
+                return;
             }
+
+            // Register commands
+            await RegisterCommandsAsync();
+
+            // Schedule the first post
+            await ScheduleNextPost();
+        }
+
+        private static async Task RegisterCommandsAsync()
+        {
+            var sendCommand = new SlashCommandBuilder()
+                .WithName("send")
+                .WithDescription("Send a random image from the list");
+
+            // Replace 'your_guild_id_here' with your actual guild ID
+            var guildId = ulong.Parse(Environment.GetEnvironmentVariable("GUILD_ID")); // Example: 123456789012345678
+            var guild = _client.GetGuild(guildId);
+
+            await guild.DeleteApplicationCommandsAsync(); // Clear existing commands in the guild
+            await _client.Rest.DeleteAllGlobalCommandsAsync(); // Optionally clear global commands
+            await guild.CreateApplicationCommandAsync(sendCommand.Build());
+
+            Console.WriteLine("Slash command /send registered for guild");
+        }
+
+        private static async Task HandleInteractionAsync(SocketInteraction interaction)
+        {
+            if (interaction is SocketSlashCommand command)
+            {
+                if (command.Data.Name == "send")
+                {
+                    await HandleSendCommandAsync(command);
+                }
+            }
+        }
+
+        private static async Task HandleSendCommandAsync(SocketSlashCommand command)
+        {
+            if (_isImageUrlsLoaded)
+            {
+                if (_imageUrls.Count > 0)
+                {
+                    int index = _random.Next(_imageUrls.Count);
+                    string randomUrl = _imageUrls[index];
+                    await command.RespondAsync(randomUrl);
+                }
+                else
+                {
+                    await command.RespondAsync("No URLs available.");
+                }
+            }
+            else
+            {
+                await command.RespondAsync("The bot is still loading data. Please try again later.");
+            }
+        }
+
+        private static async Task ScheduleNextPost()
+        {
+            var nowUtc = DateTime.UtcNow;
+            var spainTime = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, _spainTimeZone);
+            
+            // Specify that nextPostTimeSpain is unspecified in terms of kind because we will convert it to a specific time zone
+            var nextPostTimeSpain = DateTime.SpecifyKind(DateTime.Today.Add(_postTimeSpain), DateTimeKind.Unspecified);
+
+            if (nextPostTimeSpain <= spainTime)
+            {
+                // If the time has already passed for today, schedule for tomorrow
+                nextPostTimeSpain = nextPostTimeSpain.AddDays(1);
+            }
+
+            // Convert the unspecified time to Spain time zone and then to UTC
+            nextPostTimeSpain = TimeZoneInfo.ConvertTimeToUtc(nextPostTimeSpain, _spainTimeZone);
+
+            // Calculate the delay
+            var delay = nextPostTimeSpain - nowUtc;
+
+            Console.WriteLine($"Scheduling next post in {delay.TotalMinutes} minutes.");
+
+            await Task.Delay(delay);
+
+            await PostRandomImageUrl();
+
+            // Schedule the next post
+            await ScheduleNextPost();
         }
 
         private static async Task<string> DownloadCsvFromGoogleDrive()
         {
             try
             {
+                // Set up Google Drive API service
                 var credential = GoogleCredential.FromFile(_credentialsPath)
                     .CreateScoped(DriveService.Scope.DriveReadonly);
 
@@ -226,6 +209,7 @@ namespace DiscordBotExample
                     ApplicationName = "DiscordBotExample",
                 });
 
+                // Download the file
                 var request = service.Files.Get(_fileId);
                 var stream = new MemoryStream();
                 request.MediaDownloader.ProgressChanged += progress =>
@@ -248,6 +232,22 @@ namespace DiscordBotExample
             {
                 Console.WriteLine($"An error occurred: {ex.Message}");
                 return null;
+            }
+        }
+
+        private static async Task PostRandomImageUrl()
+        {
+            var channel = _client.GetChannel(_channelId) as IMessageChannel;
+
+            if (channel != null && _imageUrls.Count > 0)
+            {
+                int index = _random.Next(_imageUrls.Count);
+                string randomUrl = _imageUrls[index];
+                await channel.SendMessageAsync(randomUrl);
+            }
+            else
+            {
+                Console.WriteLine("No URLs available.");
             }
         }
 
