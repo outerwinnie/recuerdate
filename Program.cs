@@ -40,11 +40,6 @@ namespace DiscordBotExample
             if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(channelIdStr) || string.IsNullOrEmpty(_fileId) || string.IsNullOrEmpty(_credentialsPath) || string.IsNullOrEmpty(postTimeStr))
             {
                 Console.WriteLine("Environment variables are not set correctly.");
-                Console.WriteLine($"DISCORD_BOT_TOKEN: {(string.IsNullOrEmpty(token) ? "Not set" : "Set")}");
-                Console.WriteLine($"DISCORD_CHANNEL_ID: {(string.IsNullOrEmpty(channelIdStr) ? "Not set" : "Set")}");
-                Console.WriteLine($"GOOGLE_DRIVE_FILE_ID: {(string.IsNullOrEmpty(_fileId) ? "Not set" : "Set")}");
-                Console.WriteLine($"GOOGLE_CREDENTIALS_PATH: {(string.IsNullOrEmpty(_credentialsPath) ? "Not set" : "Set")}");
-                Console.WriteLine($"POST_TIME: {(string.IsNullOrEmpty(postTimeStr) ? "Not set" : "Set")}");
                 return;
             }
 
@@ -130,7 +125,7 @@ namespace DiscordBotExample
         private static async Task RegisterCommandsAsync()
         {
             // Add commands to the CommandService
-            await _commands.AddModulesAsync(typeof(Program).Assembly, _services);
+            await _commands.AddModuleAsync<ImageCommands>(null);
         }
 
         private static async Task HandleCommandAsync(SocketMessage arg)
@@ -234,7 +229,6 @@ namespace DiscordBotExample
             }
         }
 
-        [Group("image")]
         public class ImageCommands : ModuleBase<SocketCommandContext>
         {
             [Command("send")]
