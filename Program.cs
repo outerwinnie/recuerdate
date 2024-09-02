@@ -104,7 +104,7 @@ namespace DiscordBotExample
 
                 if (!result.IsSuccess)
                 {
-                    Console.WriteLine(result.ErrorReason);
+                    Console.WriteLine($"Command failed: {result.ErrorReason}");
                     await context.Channel.SendMessageAsync($"Error: {result.ErrorReason}");
                 }
             }
