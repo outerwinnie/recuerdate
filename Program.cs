@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
 using Discord.Commands;
+using Discord.Rest;
 using CsvHelper;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Drive.v3;
@@ -19,8 +20,6 @@ namespace DiscordBotExample
         private static List<string> _imageUrls;
         private static Random _random = new Random();
         private static DiscordSocketClient _client;
-        private static CommandService _commands;
-        private static IServiceProvider _services;
         private static ulong _channelId;
         private static string _fileId;
         private static string _credentialsPath;
@@ -57,12 +56,11 @@ namespace DiscordBotExample
                 return;
             }
 
-            // Initialize the Discord client and command service
+            // Initialize the Discord client
             _client = new DiscordSocketClient();
-            _commands = new CommandService();
             _client.Log += Log;
             _client.Ready += OnReady;
-            _client.MessageReceived += HandleCommandAsync;
+            _client.InteractionCreated += HandleInteractionAsync;
 
             // Start the bot
             await _client.LoginAsync(TokenType.Bot, token);
@@ -124,22 +122,43 @@ namespace DiscordBotExample
 
         private static async Task RegisterCommandsAsync()
         {
-            // Add commands to the CommandService
-            await _commands.AddModuleAsync<ImageCommands>(null);
+            var sendCommand = new SlashCommandBuilder()
+                .WithName("send")
+                .WithDescription("Send a random image from the list");
+
+            // Replace 'your_guild_id_here' with your actual guild ID
+            var guildId = ulong.Parse(Environment.GetEnvironmentVariable("GUILD_ID")); // Example: 123456789012345678
+            var guild = _client.GetGuild(guildId);
+
+            await guild.DeleteApplicationCommandsAsync(); // Clear existing commands in the guild
+            await _client.Rest.DeleteAllGlobalCommandsAsync(); // Optionally clear global commands
+            await guild.CreateApplicationCommandAsync(sendCommand.Build());
+
+            Console.WriteLine("Slash command /send registered for guild");
         }
 
-        private static async Task HandleCommandAsync(SocketMessage arg)
+        private static async Task HandleInteractionAsync(SocketInteraction interaction)
         {
-            var message = arg as SocketUserMessage;
-            var context = new SocketCommandContext(_client, message);
-
-            if (message.Author.IsBot) return;
-
-            int argPos = 0;
-            if (message.HasStringPrefix("/", ref argPos))
+            if (interaction is SocketSlashCommand command)
             {
-                var result = await _commands.ExecuteAsync(context, argPos, _services);
-                if (!result.IsSuccess) Console.WriteLine(result.ErrorReason);
+                if (command.Data.Name == "send")
+                {
+                    await HandleSendCommandAsync(command);
+                }
+            }
+        }
+
+        private static async Task HandleSendCommandAsync(SocketSlashCommand command)
+        {
+            if (_imageUrls.Count > 0)
+            {
+                int index = _random.Next(_imageUrls.Count);
+                string randomUrl = _imageUrls[index];
+                await command.RespondAsync(randomUrl);
+            }
+            else
+            {
+                await command.RespondAsync("No URLs available.");
             }
         }
 
@@ -229,29 +248,10 @@ namespace DiscordBotExample
             }
         }
 
-        public class ImageCommands : ModuleBase<SocketCommandContext>
+        public class YourRecordClass
         {
-            [Command("send")]
-            public async Task SendRandomImage()
-            {
-                if (Program._imageUrls.Count > 0)
-                {
-                    int index = Program._random.Next(Program._imageUrls.Count);
-                    string randomUrl = Program._imageUrls[index];
-                    await Context.Channel.SendMessageAsync(randomUrl);
-                }
-                else
-                {
-                    await Context.Channel.SendMessageAsync("No URLs available.");
-                }
-            }
+            public string image_url { get; set; }
+            public string has_spoilers { get; set; }
         }
-    }
-
-    // Define a class that matches the CSV structure
-    public class YourRecordClass
-    {
-        public string image_url { get; set; }
-        public string has_spoilers { get; set; }
     }
 }
