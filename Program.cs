@@ -78,17 +78,14 @@ namespace DiscordBotExample
         private static async Task OnReady()
         {
             Console.WriteLine("Bot is connected.");
-
-            await RegisterCommandsAsync(); // Register command modules
-
-            // Schedule the first post
+            await RegisterCommandsAsync();
             await ScheduleNextPost();
         }
 
         private static async Task RegisterCommandsAsync()
         {
-            // Register commands from the assembly
-            await _commands.AddModulesAsync(typeof(Program).Assembly, _services);
+            // Register the command module
+            await _commands.AddModuleAsync<CommandModule>(_services);
         }
 
         private static async Task HandleCommandAsync(SocketMessage messageParam)
@@ -101,13 +98,14 @@ namespace DiscordBotExample
 
             int argPos = 0;
 
-            if (message.HasCharPrefix('/', ref argPos))
+            if (message.HasStringPrefix("/", ref argPos))
             {
                 var result = await _commands.ExecuteAsync(context, argPos, _services);
 
                 if (!result.IsSuccess)
                 {
                     Console.WriteLine(result.ErrorReason);
+                    await context.Channel.SendMessageAsync($"Error: {result.ErrorReason}");
                 }
             }
         }
@@ -130,7 +128,6 @@ namespace DiscordBotExample
             await Task.Delay(delay);
 
             await PostRandomImageUrl();
-
             await ScheduleNextPost();
         }
 
