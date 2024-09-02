@@ -25,6 +25,7 @@ namespace DiscordBotExample
         private static string _credentialsPath;
         private static TimeSpan _postTimeSpain;
         private static TimeZoneInfo _spainTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Central European Standard Time");
+        private static bool _isImageUrlsLoaded = false; // Flag to track if image URLs are loaded
 
         static async Task Main(string[] args)
         {
@@ -92,6 +93,8 @@ namespace DiscordBotExample
                                     .Where(record => !string.IsNullOrWhiteSpace(record.image_url) && record.has_spoilers != "yes")
                                     .Select(record => record.image_url.Trim())
                                     .ToList();
+
+                    _isImageUrlsLoaded = true; // Set flag to true when URLs are loaded
                 }
 
                 Console.WriteLine("Filtered URLs read from CSV:");
@@ -103,13 +106,6 @@ namespace DiscordBotExample
             else
             {
                 Console.WriteLine("Failed to download or read the CSV file. Exiting...");
-                return;
-            }
-
-            // Check if imageUrls is empty
-            if (_imageUrls.Count == 0)
-            {
-                Console.WriteLine("No valid URLs available. Exiting...");
                 return;
             }
 
@@ -150,15 +146,22 @@ namespace DiscordBotExample
 
         private static async Task HandleSendCommandAsync(SocketSlashCommand command)
         {
-            if (_imageUrls.Count > 0)
+            if (_isImageUrlsLoaded)
             {
-                int index = _random.Next(_imageUrls.Count);
-                string randomUrl = _imageUrls[index];
-                await command.RespondAsync(randomUrl);
+                if (_imageUrls.Count > 0)
+                {
+                    int index = _random.Next(_imageUrls.Count);
+                    string randomUrl = _imageUrls[index];
+                    await command.RespondAsync(randomUrl);
+                }
+                else
+                {
+                    await command.RespondAsync("No URLs available.");
+                }
             }
             else
             {
-                await command.RespondAsync("No URLs available.");
+                await command.RespondAsync("The bot is still loading data. Please try again later.");
             }
         }
 
