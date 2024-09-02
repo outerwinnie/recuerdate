@@ -5,11 +5,13 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Discord;
+using Discord.Commands;
 using Discord.WebSocket;
 using CsvHelper;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace DiscordBotExample
 {
@@ -18,6 +20,8 @@ namespace DiscordBotExample
         private static List<string> _imageUrls;
         private static Random _random = new Random();
         private static DiscordSocketClient _client;
+        private static CommandService _commands;
+        private static IServiceProvider _services;
         private static ulong _channelId;
         private static string _fileId;
         private static string _credentialsPath;
@@ -37,11 +41,6 @@ namespace DiscordBotExample
             if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(channelIdStr) || string.IsNullOrEmpty(_fileId) || string.IsNullOrEmpty(_credentialsPath) || string.IsNullOrEmpty(postTimeStr))
             {
                 Console.WriteLine("Environment variables are not set correctly.");
-                Console.WriteLine($"DISCORD_BOT_TOKEN: {(string.IsNullOrEmpty(token) ? "Not set" : "Set")}");
-                Console.WriteLine($"DISCORD_CHANNEL_ID: {(string.IsNullOrEmpty(channelIdStr) ? "Not set" : "Set")}");
-                Console.WriteLine($"GOOGLE_DRIVE_FILE_ID: {(string.IsNullOrEmpty(_fileId) ? "Not set" : "Set")}");
-                Console.WriteLine($"GOOGLE_CREDENTIALS_PATH: {(string.IsNullOrEmpty(_credentialsPath) ? "Not set" : "Set")}");
-                Console.WriteLine($"POST_TIME: {(string.IsNullOrEmpty(postTimeStr) ? "Not set" : "Set")}");
                 return;
             }
 
@@ -59,10 +58,17 @@ namespace DiscordBotExample
                 return;
             }
 
-            // Initialize the Discord client
+            // Initialize the Discord client and command service
             _client = new DiscordSocketClient();
+            _commands = new CommandService();
+            _services = new ServiceCollection()
+                .AddSingleton(_client)
+                .AddSingleton(_commands)
+                .BuildServiceProvider();
+
             _client.Log += Log;
             _client.Ready += OnReady;
+            _client.MessageReceived += HandleCommandAsync;
 
             // Start the bot
             await _client.LoginAsync(TokenType.Bot, token);
@@ -81,6 +87,9 @@ namespace DiscordBotExample
         private static async Task OnReady()
         {
             Console.WriteLine("Bot is connected.");
+
+            // Initialize command handling
+            await _commands.AddModulesAsync(typeof(Program).Assembly, _services);
 
             // Download and process the CSV file from Google Drive
             var csvData = await DownloadCsvFromGoogleDrive();
@@ -119,6 +128,27 @@ namespace DiscordBotExample
             await ScheduleNextPost();
         }
 
+        private static async Task HandleCommandAsync(SocketMessage messageParam)
+        {
+            var message = messageParam as SocketUserMessage;
+            var context = new SocketCommandContext(_client, message);
+
+            if (message == null || message.Author.IsBot)
+                return;
+
+            int argPos = 0;
+
+            if (message.HasCharPrefix('/', ref argPos))
+            {
+                var result = await _commands.ExecuteAsync(context, argPos, _services);
+
+                if (!result.IsSuccess)
+                {
+                    Console.WriteLine(result.ErrorReason);
+                }
+            }
+        }
+
         private static async Task ScheduleNextPost()
         {
             var nowUtc = DateTime.UtcNow;
@@ -149,7 +179,7 @@ namespace DiscordBotExample
             await ScheduleNextPost();
         }
 
-        private static async Task<string> DownloadCsvFromGoogleDrive()
+        public static async Task<string> DownloadCsvFromGoogleDrive()
         {
             try
             {
@@ -189,7 +219,7 @@ namespace DiscordBotExample
             }
         }
 
-        private static async Task PostRandomImageUrl()
+        public static async Task PostRandomImageUrl()
         {
             var channel = _client.GetChannel(_channelId) as IMessageChannel;
 
@@ -211,5 +241,16 @@ namespace DiscordBotExample
     {
         public string image_url { get; set; }
         public string has_spoilers { get; set; }
+    }
+
+    // Command Module for handling commands
+    public class CommandModule : ModuleBase<SocketCommandContext>
+    {
+        [Command("send")]
+        public async Task SendRandomImage()
+        {
+            await Program.PostRandomImageUrl();
+            await ReplyAsync("Random image sent!");
+        }
     }
 }
