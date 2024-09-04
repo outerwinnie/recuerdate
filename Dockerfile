@@ -18,7 +18,7 @@ COPY --from=build /app/out ./
 # Set environment variables
 ENV DISCORD_BOT_TOKEN=""
 ENV DISCORD_CHANNEL_ID=""
-ENV CSV_FILE_PATH=""
+ENV CSV_FILE_PATH="/app/data"
 ENV POST_TIME="20:00:00"
 
 # Entry point for the application
