@@ -18,8 +18,9 @@ COPY --from=build /app/out ./
 # Set environment variables
 ENV DISCORD_BOT_TOKEN=""
 ENV DISCORD_CHANNEL_ID=""
-ENV CSV_FILE_PATH="/app/data"
+ENV CSV_FILE_PATH="/app/data/data.csv"
 ENV POST_TIME="20:00:00"
+ENV GUILD_ID=""
 
 # Entry point for the application
 ENTRYPOINT ["dotnet", "Recuerdense-Bot.dll"]
