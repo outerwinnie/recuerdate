@@ -7,11 +7,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
 using Discord.Commands;
-using Discord.Rest;
 using CsvHelper;
-using Google.Apis.Auth.OAuth2;
-using Google.Apis.Drive.v3;
-using Google.Apis.Services;
 
 namespace DiscordBotExample
 {
@@ -21,8 +17,7 @@ namespace DiscordBotExample
         private static Random _random = new Random();
         private static DiscordSocketClient _client;
         private static ulong _channelId;
-        private static string _fileId;
-        private static string _credentialsPath;
+        private static string _csvFilePath;
         private static TimeSpan _postTimeSpain;
         private static TimeZoneInfo _spainTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Central European Standard Time");
         private static bool _isImageUrlsLoaded = false; // Flag to track if image URLs are loaded
@@ -32,12 +27,11 @@ namespace DiscordBotExample
             // Read environment variables
             var token = Environment.GetEnvironmentVariable("DISCORD_BOT_TOKEN");
             var channelIdStr = Environment.GetEnvironmentVariable("DISCORD_CHANNEL_ID");
-            _fileId = Environment.GetEnvironmentVariable("GOOGLE_DRIVE_FILE_ID");
-            _credentialsPath = Environment.GetEnvironmentVariable("GOOGLE_CREDENTIALS_PATH");
+            _csvFilePath = Environment.GetEnvironmentVariable("CSV_FILE_PATH");
             var postTimeStr = Environment.GetEnvironmentVariable("POST_TIME");
 
-            // Check if token, channelId, fileId, credentialsPath, or postTime is null or empty
-            if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(channelIdStr) || string.IsNullOrEmpty(_fileId) || string.IsNullOrEmpty(_credentialsPath) || string.IsNullOrEmpty(postTimeStr))
+            // Check if token, channelId, csvFilePath, or postTime is null or empty
+            if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(channelIdStr) || string.IsNullOrEmpty(_csvFilePath) || string.IsNullOrEmpty(postTimeStr))
             {
                 Console.WriteLine("Environment variables are not set correctly.");
                 return;
@@ -81,8 +75,8 @@ namespace DiscordBotExample
         {
             Console.WriteLine("Bot is connected.");
 
-            // Download and process the CSV file from Google Drive
-            var csvData = await DownloadCsvFromGoogleDrive();
+            // Read and process the CSV file from the local filesystem
+            var csvData = await ReadLocalCsvFile();
 
             if (csvData != null)
             {
@@ -105,7 +99,7 @@ namespace DiscordBotExample
             }
             else
             {
-                Console.WriteLine("Failed to download or read the CSV file. Exiting...");
+                Console.WriteLine("Failed to read the CSV file. Exiting...");
                 return;
             }
 
@@ -170,7 +164,6 @@ namespace DiscordBotExample
             var nowUtc = DateTime.UtcNow;
             var spainTime = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, _spainTimeZone);
             
-            // Specify that nextPostTimeSpain is unspecified in terms of kind because we will convert it to a specific time zone
             var nextPostTimeSpain = DateTime.SpecifyKind(DateTime.Today.Add(_postTimeSpain), DateTimeKind.Unspecified);
 
             if (nextPostTimeSpain <= spainTime)
@@ -195,42 +188,23 @@ namespace DiscordBotExample
             await ScheduleNextPost();
         }
 
-        private static async Task<string> DownloadCsvFromGoogleDrive()
+        private static async Task<string> ReadLocalCsvFile()
         {
             try
             {
-                // Set up Google Drive API service
-                var credential = GoogleCredential.FromFile(_credentialsPath)
-                    .CreateScoped(DriveService.Scope.DriveReadonly);
-
-                var service = new DriveService(new BaseClientService.Initializer()
+                // Check if the file exists
+                if (!File.Exists(_csvFilePath))
                 {
-                    HttpClientInitializer = credential,
-                    ApplicationName = "DiscordBotExample",
-                });
-
-                // Download the file
-                var request = service.Files.Get(_fileId);
-                var stream = new MemoryStream();
-                request.MediaDownloader.ProgressChanged += progress =>
-                {
-                    if (progress.Status == Google.Apis.Download.DownloadStatus.Completed)
-                    {
-                        Console.WriteLine("Download complete.");
-                    }
-                };
-
-                await request.DownloadAsync(stream);
-
-                stream.Position = 0;
-                using (var reader = new StreamReader(stream))
-                {
-                    return reader.ReadToEnd();
+                    Console.WriteLine("CSV file not found.");
+                    return null;
                 }
+
+                // Read the CSV file content
+                return await File.ReadAllTextAsync(_csvFilePath);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"An error occurred: {ex.Message}");
+                Console.WriteLine($"An error occurred while reading the CSV file: {ex.Message}");
                 return null;
             }
         }
@@ -247,7 +221,7 @@ namespace DiscordBotExample
             }
             else
             {
-                Console.WriteLine("No URLs available.");
+                Console.WriteLine("Channel not found or no URLs available.");
             }
         }
 

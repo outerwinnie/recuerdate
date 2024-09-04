@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\Winnie\\Documentos\\recuerdate\\Recuerdense-Bot.csproj": {}
+    "C:\\Users\\Winnie\\Desktop\\recuerdate\\Recuerdense-Bot.csproj": {}
   },
   "projects": {
-    "D:\\Winnie\\Documentos\\recuerdate\\Recuerdense-Bot.csproj": {
+    "C:\\Users\\Winnie\\Desktop\\recuerdate\\Recuerdense-Bot.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Winnie\\Documentos\\recuerdate\\Recuerdense-Bot.csproj",
+        "projectUniqueName": "C:\\Users\\Winnie\\Desktop\\recuerdate\\Recuerdense-Bot.csproj",
         "projectName": "Recuerdense-Bot",
-        "projectPath": "D:\\Winnie\\Documentos\\recuerdate\\Recuerdense-Bot.csproj",
+        "projectPath": "C:\\Users\\Winnie\\Desktop\\recuerdate\\Recuerdense-Bot.csproj",
         "packagesPath": "C:\\Users\\Winnie\\.nuget\\packages\\",
-        "outputPath": "D:\\Winnie\\Documentos\\recuerdate\\obj\\",
+        "outputPath": "C:\\Users\\Winnie\\Desktop\\recuerdate\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\Winnie\\AppData\\Roaming\\NuGet\\NuGet.Config"
