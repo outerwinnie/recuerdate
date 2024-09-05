@@ -95,12 +95,12 @@ namespace DiscordBotExample
                             foreach (var record in records)
                             {
                                 // Check if reward is "recuerdate" and quantity is greater than 0
-                                if (record.rewardname == "recuerdate" && record.quantity > 0)
+                                if (record.RewardName == "recuerdate" && record.Quantity > 0)
                                 {
-                                    Console.WriteLine($"Running PostRandomImageUrl {record.quantity} times...");
+                                    Console.WriteLine($"Running PostRandomImageUrl {record.Quantity} times...");
 
                                     // Run PostRandomImageUrl as many times as specified by quantity
-                                    for (int i = 0; i < record.quantity; i++)
+                                    for (int i = 0; i < record.Quantity; i++)
                                     {
                                         await PostRandomImageUrl();
                                     }
@@ -148,8 +148,8 @@ namespace DiscordBotExample
 
         public class RewardRecord
         {
-            public string rewardname { get; set; }
-            public int quantity { get; set; }
+            public string RewardName { get; set; }
+            public int Quantity { get; set; }
         }
     }
 }
