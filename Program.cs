@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
@@ -30,6 +31,10 @@ namespace DiscordBotExample
         // Path to the local rewards CSV file
         private static string _rewardsCsvPath;
 
+        // Timer for periodic rewards processing
+        private static Timer _rewardsTimer;
+        private static TimeSpan _rewardsInterval;
+
         static async Task Main(string[] args)
         {
             // Read environment variables
@@ -39,9 +44,10 @@ namespace DiscordBotExample
             _credentialsPath = Environment.GetEnvironmentVariable("GOOGLE_CREDENTIALS_PATH");
             var postTimeStr = Environment.GetEnvironmentVariable("POST_TIME");
             _rewardsCsvPath = Environment.GetEnvironmentVariable("REWARDS_CSV_PATH");
+            var rewardsIntervalStr = Environment.GetEnvironmentVariable("REWARDS_INTERVAL_MINUTES");
 
-            // Check if token, channelId, fileId, credentialsPath, postTime, or rewardsCsvPath is null or empty
-            if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(channelIdStr) || string.IsNullOrEmpty(_fileId) || string.IsNullOrEmpty(_credentialsPath) || string.IsNullOrEmpty(postTimeStr) || string.IsNullOrEmpty(_rewardsCsvPath))
+            // Check if token, channelId, fileId, credentialsPath, postTime, rewardsCsvPath, or rewardsInterval is null or empty
+            if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(channelIdStr) || string.IsNullOrEmpty(_fileId) || string.IsNullOrEmpty(_credentialsPath) || string.IsNullOrEmpty(postTimeStr) || string.IsNullOrEmpty(_rewardsCsvPath) || string.IsNullOrEmpty(rewardsIntervalStr))
             {
                 Console.WriteLine("Environment variables are not set correctly.");
                 return;
@@ -61,6 +67,15 @@ namespace DiscordBotExample
                 return;
             }
 
+            // Parse rewards interval
+            if (!int.TryParse(rewardsIntervalStr, out int rewardsIntervalMinutes))
+            {
+                Console.WriteLine("Invalid REWARDS_INTERVAL_MINUTES format. It must be an integer.");
+                return;
+            }
+
+            _rewardsInterval = TimeSpan.FromMinutes(rewardsIntervalMinutes);
+
             // Initialize the Discord client
             _client = new DiscordSocketClient();
             _client.Log += Log;
@@ -70,6 +85,12 @@ namespace DiscordBotExample
             // Start the bot
             await _client.LoginAsync(TokenType.Bot, token);
             await _client.StartAsync();
+
+            // Set up the timer for rewards processing
+            _rewardsTimer = new Timer(async _ =>
+            {
+                await ProcessRewards();
+            }, null, _rewardsInterval, _rewardsInterval);
 
             // Block the application until it is closed
             await Task.Delay(-1);
@@ -91,9 +112,9 @@ namespace DiscordBotExample
             if (csvData != null)
             {
                 using (var reader = new StringReader(csvData))
-                using (var csv = new CsvReader(reader, new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)))
+                using (var csvReader = new CsvReader(reader, new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)))
                 {
-                    _imageUrls = csv.GetRecords<YourRecordClass>()
+                    _imageUrls = csvReader.GetRecords<YourRecordClass>()
                                     .Where(record => !string.IsNullOrWhiteSpace(record.image_url) && record.has_spoilers != "yes")
                                     .Select(record => record.image_url.Trim())
                                     .ToList();
@@ -113,7 +134,7 @@ namespace DiscordBotExample
                 return;
             }
 
-            // Process rewards
+            // Process rewards initially
             await ProcessRewards();
 
             // Register commands
@@ -260,51 +281,45 @@ namespace DiscordBotExample
 
         private static async Task ProcessRewards()
         {
-            if (string.IsNullOrEmpty(_rewardsCsvPath) || !File.Exists(_rewardsCsvPath))
-            {
-                Console.WriteLine("Rewards CSV file not found.");
-                return;
-            }
-
             try
             {
-                var records = new List<RewardRecordClass>();
+                // Read the rewards CSV from local storage
+                var rewardsCsvData = File.ReadAllText(_rewardsCsvPath);
 
-                // Read the existing rewards data
-                using (var reader = new StreamReader(_rewardsCsvPath))
-                using (var csv = new CsvReader(reader, new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)))
+                // Parse the CSV data
+                using (var reader = new StringReader(rewardsCsvData))
+                using (var csvReader = new CsvReader(reader, new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)))
                 {
-                    records = csv.GetRecords<RewardRecordClass>().ToList();
-                }
+                    var records = csvReader.GetRecords<RewardRecordClass>().ToList();
 
-                foreach (var record in records)
-                {
-                    if (record.RewardName == "recuerdate")
+                    foreach (var record in records)
                     {
-                        if (int.TryParse(record.Quantity, out int quantity))
+                        if (record.RewardName.Equals("recuerdate", StringComparison.OrdinalIgnoreCase))
                         {
-                            var imagesSent = 0;
-                            for (int i = 0; i < quantity; i++)
+                            if (int.TryParse(record.Quantity, out int quantity) && quantity > 0)
                             {
-                                await PostRandomImageUrl();
-                                imagesSent++;
-                            }
+                                Console.WriteLine($"Processing reward '{record.RewardName}' with quantity {quantity}.");
+                                for (int i = 0; i < quantity; i++)
+                                {
+                                    await PostRandomImageUrl();
+                                }
 
-                            // Update the Quantity field
-                            record.Quantity = (quantity - imagesSent).ToString();
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Invalid Quantity value for record with RewardName '{record.RewardName}'.");
+                                // Decrease the quantity after sending the images
+                                record.Quantity = "0"; // Set quantity to 0 after processing
+                            }
+                            else
+                            {
+                                Console.WriteLine($"Invalid Quantity value for record with RewardName '{record.RewardName}'.");
+                            }
                         }
                     }
-                }
 
-                // Write the updated rewards data back to the CSV file
-                using (var writer = new StreamWriter(_rewardsCsvPath))
-                using (var csv = new CsvWriter(writer, new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)))
-                {
-                    csv.WriteRecords(records);
+                    // Write the updated rewards data back to the CSV file
+                    using (var writer = new StreamWriter(_rewardsCsvPath))
+                    using (var csvWriter = new CsvWriter(writer, new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)))
+                    {
+                        csvWriter.WriteRecords(records);
+                    }
                 }
             }
             catch (Exception ex)
