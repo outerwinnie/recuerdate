@@ -7,8 +7,8 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
 using Discord.Commands;
+using Discord.Rest;
 using CsvHelper;
-using CsvHelper.Configuration;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
@@ -23,7 +23,6 @@ namespace DiscordBotExample
         private static ulong _channelId;
         private static string _fileId;
         private static string _credentialsPath;
-        private static string _rewardsCsvPath; // For rewards.csv path from Docker environment
         private static TimeSpan _postTimeSpain;
         private static TimeZoneInfo _spainTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Central European Standard Time");
         private static bool _isImageUrlsLoaded = false; // Flag to track if image URLs are loaded
@@ -35,11 +34,10 @@ namespace DiscordBotExample
             var channelIdStr = Environment.GetEnvironmentVariable("DISCORD_CHANNEL_ID");
             _fileId = Environment.GetEnvironmentVariable("GOOGLE_DRIVE_FILE_ID");
             _credentialsPath = Environment.GetEnvironmentVariable("GOOGLE_CREDENTIALS_PATH");
-            _rewardsCsvPath = Environment.GetEnvironmentVariable("REWARDS_CSV_PATH"); // Rewards CSV path from environment
             var postTimeStr = Environment.GetEnvironmentVariable("POST_TIME");
 
-            // Check if token, channelId, fileId, credentialsPath, postTime, or rewardsCsvPath is null or empty
-            if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(channelIdStr) || string.IsNullOrEmpty(_fileId) || string.IsNullOrEmpty(_credentialsPath) || string.IsNullOrEmpty(postTimeStr) || string.IsNullOrEmpty(_rewardsCsvPath))
+            // Check if token, channelId, fileId, credentialsPath, or postTime is null or empty
+            if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(channelIdStr) || string.IsNullOrEmpty(_fileId) || string.IsNullOrEmpty(_credentialsPath) || string.IsNullOrEmpty(postTimeStr))
             {
                 Console.WriteLine("Environment variables are not set correctly.");
                 return;
@@ -89,7 +87,7 @@ namespace DiscordBotExample
             if (csvData != null)
             {
                 using (var reader = new StringReader(csvData))
-                using (var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)))
+                using (var csv = new CsvReader(reader, new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)))
                 {
                     _imageUrls = csv.GetRecords<YourRecordClass>()
                                     .Where(record => !string.IsNullOrWhiteSpace(record.image_url) && record.has_spoilers != "yes")
@@ -111,17 +109,14 @@ namespace DiscordBotExample
                 return;
             }
 
+            // Process rewards
+            await ProcessRewards();
+
             // Register commands
             await RegisterCommandsAsync();
 
             // Schedule the first post
             await ScheduleNextPost();
-
-            // Start checking rewards.csv after URLs have been loaded
-            if (_isImageUrlsLoaded)
-            {
-                _ = Task.Run(CheckRewardsCsvAsync); // Runs in parallel after URLs are loaded
-            }
         }
 
         private static async Task RegisterCommandsAsync()
@@ -259,68 +254,99 @@ namespace DiscordBotExample
             }
         }
 
-        // New method to check rewards every 5 minutes
-        private static async Task CheckRewardsCsvAsync()
+        private static async Task ProcessRewards()
         {
-            while (true) // Infinite loop to run continuously
+            var rewardsFileId = Environment.GetEnvironmentVariable("REWARDS_FILE_ID");
+            if (string.IsNullOrEmpty(rewardsFileId))
             {
-                try
+                Console.WriteLine("Rewards file ID is not set.");
+                return;
+            }
+
+            var csvData = await DownloadCsvFromGoogleDrive(rewardsFileId);
+
+            if (csvData != null)
+            {
+                using (var reader = new StringReader(csvData))
+                using (var csv = new CsvReader(reader, new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)))
                 {
-                    if (File.Exists(_rewardsCsvPath)) // Check if the CSV file exists
+                    var records = csv.GetRecords<RewardRecordClass>().ToList();
+
+                    foreach (var record in records)
                     {
-                        using (var reader = new StreamReader(_rewardsCsvPath))
-                        using (var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)))
+                        if (record.RewardName == "recuerdate")
                         {
-                            var rewards = csv.GetRecords<RewardRecord>().ToList();
-
-                            // Find the reward named "recuerdate"
-                            var recuerdateReward = rewards.FirstOrDefault(r => r.RewardName == "recuerdate");
-
-                            if (recuerdateReward != null)
+                            if (int.TryParse(record.Quantity, out int quantity))
                             {
-                                if (int.TryParse(recuerdateReward.Quantity, out int quantity))
+                                for (int i = 0; i < quantity; i++)
                                 {
-                                    Console.WriteLine($"'recuerdate' reward found with quantity {quantity}. Posting random images...");
-                                    
-                                    for (int i = 0; i < quantity; i++)
-                                    {
-                                        await PostRandomImageUrl(); // Post a random image
-                                    }
+                                    await PostRandomImageUrl();
                                 }
                             }
                             else
                             {
-                                Console.WriteLine("No 'recuerdate' reward found.");
+                                Console.WriteLine($"Invalid Quantity value for record with RewardName '{record.RewardName}'.");
                             }
                         }
                     }
-                    else
-                    {
-                        Console.WriteLine($"Rewards CSV file not found at {_rewardsCsvPath}.");
-                    }
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error reading rewards CSV: {ex.Message}");
-                }
-
-                // Wait for 5 minutes before checking again
-                await Task.Delay(TimeSpan.FromMinutes(5));
+            }
+            else
+            {
+                Console.WriteLine("Failed to download or read the rewards CSV file.");
             }
         }
 
-        // RewardRecord class to map CSV columns
-        public class RewardRecord
+        private static async Task<string> DownloadCsvFromGoogleDrive(string fileId)
         {
-            public string RewardName { get; set; }
-            public string Quantity { get; set; }
+            try
+            {
+                // Set up Google Drive API service
+                var credential = GoogleCredential.FromFile(_credentialsPath)
+                    .CreateScoped(DriveService.Scope.DriveReadonly);
+
+                var service = new DriveService(new BaseClientService.Initializer()
+                {
+                    HttpClientInitializer = credential,
+                    ApplicationName = "DiscordBotExample",
+                });
+
+                // Download the file
+                var request = service.Files.Get(fileId);
+                var stream = new MemoryStream();
+                request.MediaDownloader.ProgressChanged += progress =>
+                {
+                    if (progress.Status == Google.Apis.Download.DownloadStatus.Completed)
+                    {
+                        Console.WriteLine("Download complete.");
+                    }
+                };
+
+                await request.DownloadAsync(stream);
+
+                stream.Position = 0;
+                using (var reader = new StreamReader(stream))
+                {
+                    return reader.ReadToEnd();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred: {ex.Message}");
+                return null;
+            }
         }
 
-        // Your CSV record class (make sure the fields match your actual CSV file)
         public class YourRecordClass
         {
             public string image_url { get; set; }
             public string has_spoilers { get; set; }
+        }
+
+        public class RewardRecordClass
+        {
+            public string RewardName { get; set; }
+            public string Quantity { get; set; }
         }
     }
 }
