@@ -27,6 +27,9 @@ namespace DiscordBotExample
         private static TimeZoneInfo _spainTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Central European Standard Time");
         private static bool _isImageUrlsLoaded = false; // Flag to track if image URLs are loaded
 
+        // Path to the local rewards CSV file
+        private static string _rewardsCsvPath;
+
         static async Task Main(string[] args)
         {
             // Read environment variables
@@ -35,9 +38,10 @@ namespace DiscordBotExample
             _fileId = Environment.GetEnvironmentVariable("GOOGLE_DRIVE_FILE_ID");
             _credentialsPath = Environment.GetEnvironmentVariable("GOOGLE_CREDENTIALS_PATH");
             var postTimeStr = Environment.GetEnvironmentVariable("POST_TIME");
+            _rewardsCsvPath = Environment.GetEnvironmentVariable("REWARDS_CSV_PATH");
 
-            // Check if token, channelId, fileId, credentialsPath, or postTime is null or empty
-            if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(channelIdStr) || string.IsNullOrEmpty(_fileId) || string.IsNullOrEmpty(_credentialsPath) || string.IsNullOrEmpty(postTimeStr))
+            // Check if token, channelId, fileId, credentialsPath, postTime, or rewardsCsvPath is null or empty
+            if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(channelIdStr) || string.IsNullOrEmpty(_fileId) || string.IsNullOrEmpty(_credentialsPath) || string.IsNullOrEmpty(postTimeStr) || string.IsNullOrEmpty(_rewardsCsvPath))
             {
                 Console.WriteLine("Environment variables are not set correctly.");
                 return;
@@ -108,6 +112,9 @@ namespace DiscordBotExample
                 Console.WriteLine("Failed to download or read the CSV file. Exiting...");
                 return;
             }
+
+            // Process rewards
+            await ProcessRewards();
 
             // Register commands
             await RegisterCommandsAsync();
@@ -251,10 +258,71 @@ namespace DiscordBotExample
             }
         }
 
+        private static async Task ProcessRewards()
+        {
+            if (string.IsNullOrEmpty(_rewardsCsvPath) || !File.Exists(_rewardsCsvPath))
+            {
+                Console.WriteLine("Rewards CSV file not found.");
+                return;
+            }
+
+            try
+            {
+                var records = new List<RewardRecordClass>();
+
+                // Read the existing rewards data
+                using (var reader = new StreamReader(_rewardsCsvPath))
+                using (var csv = new CsvReader(reader, new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)))
+                {
+                    records = csv.GetRecords<RewardRecordClass>().ToList();
+                }
+
+                foreach (var record in records)
+                {
+                    if (record.RewardName == "recuerdate")
+                    {
+                        if (int.TryParse(record.Quantity, out int quantity))
+                        {
+                            var imagesSent = 0;
+                            for (int i = 0; i < quantity; i++)
+                            {
+                                await PostRandomImageUrl();
+                                imagesSent++;
+                            }
+
+                            // Update the Quantity field
+                            record.Quantity = (quantity - imagesSent).ToString();
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Invalid Quantity value for record with RewardName '{record.RewardName}'.");
+                        }
+                    }
+                }
+
+                // Write the updated rewards data back to the CSV file
+                using (var writer = new StreamWriter(_rewardsCsvPath))
+                using (var csv = new CsvWriter(writer, new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)))
+                {
+                    csv.WriteRecords(records);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred while processing the rewards file: {ex.Message}");
+            }
+        }
+
         public class YourRecordClass
         {
             public string image_url { get; set; }
             public string has_spoilers { get; set; }
+        }
+
+        public class RewardRecordClass
+        {
+            public string RewardName { get; set; }
+            public string Quantity { get; set; }
         }
     }
 }
