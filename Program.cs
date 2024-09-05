@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
@@ -77,8 +76,14 @@ namespace DiscordBotExample
             {
                 try
                 {
-                    // Path to your rewards.csv file
-                    string csvFilePath = "rewards.csv";
+                    // Read CSV file path from Docker environment variable
+                    string csvFilePath = Environment.GetEnvironmentVariable("CSV_FILE_PATH");
+
+                    if (string.IsNullOrEmpty(csvFilePath))
+                    {
+                        Console.WriteLine("CSV_FILE_PATH environment variable is not set.");
+                        return;
+                    }
 
                     if (File.Exists(csvFilePath))
                     {
@@ -105,7 +110,7 @@ namespace DiscordBotExample
                     }
                     else
                     {
-                        Console.WriteLine("CSV file not found.");
+                        Console.WriteLine($"CSV file not found at path: {csvFilePath}");
                     }
                 }
                 catch (Exception ex)
