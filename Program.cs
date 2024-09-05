@@ -268,28 +268,43 @@ namespace DiscordBotExample
 
             try
             {
+                var records = new List<RewardRecordClass>();
+
+                // Read the existing rewards data
                 using (var reader = new StreamReader(_rewardsCsvPath))
                 using (var csv = new CsvReader(reader, new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)))
                 {
-                    var records = csv.GetRecords<RewardRecordClass>().ToList();
+                    records = csv.GetRecords<RewardRecordClass>().ToList();
+                }
 
-                    foreach (var record in records)
+                foreach (var record in records)
+                {
+                    if (record.RewardName == "recuerdate")
                     {
-                        if (record.RewardName == "recuerdate")
+                        if (int.TryParse(record.Quantity, out int quantity))
                         {
-                            if (int.TryParse(record.Quantity, out int quantity))
+                            var imagesSent = 0;
+                            for (int i = 0; i < quantity; i++)
                             {
-                                for (int i = 0; i < quantity; i++)
-                                {
-                                    await PostRandomImageUrl();
-                                }
+                                await PostRandomImageUrl();
+                                imagesSent++;
                             }
-                            else
-                            {
-                                Console.WriteLine($"Invalid Quantity value for record with RewardName '{record.RewardName}'.");
-                            }
+
+                            // Update the Quantity field
+                            record.Quantity = (quantity - imagesSent).ToString();
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Invalid Quantity value for record with RewardName '{record.RewardName}'.");
                         }
                     }
+                }
+
+                // Write the updated rewards data back to the CSV file
+                using (var writer = new StreamWriter(_rewardsCsvPath))
+                using (var csv = new CsvWriter(writer, new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)))
+                {
+                    csv.WriteRecords(records);
                 }
             }
             catch (Exception ex)
