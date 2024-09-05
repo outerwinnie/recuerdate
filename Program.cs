@@ -27,6 +27,9 @@ namespace DiscordBotExample
         private static TimeZoneInfo _spainTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Central European Standard Time");
         private static bool _isImageUrlsLoaded = false; // Flag to track if image URLs are loaded
 
+        // Path to the local rewards CSV file
+        private static string _rewardsCsvPath;
+
         static async Task Main(string[] args)
         {
             // Read environment variables
@@ -35,9 +38,10 @@ namespace DiscordBotExample
             _fileId = Environment.GetEnvironmentVariable("GOOGLE_DRIVE_FILE_ID");
             _credentialsPath = Environment.GetEnvironmentVariable("GOOGLE_CREDENTIALS_PATH");
             var postTimeStr = Environment.GetEnvironmentVariable("POST_TIME");
+            _rewardsCsvPath = Environment.GetEnvironmentVariable("REWARDS_CSV_PATH");
 
-            // Check if token, channelId, fileId, credentialsPath, or postTime is null or empty
-            if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(channelIdStr) || string.IsNullOrEmpty(_fileId) || string.IsNullOrEmpty(_credentialsPath) || string.IsNullOrEmpty(postTimeStr))
+            // Check if token, channelId, fileId, credentialsPath, postTime, or rewardsCsvPath is null or empty
+            if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(channelIdStr) || string.IsNullOrEmpty(_fileId) || string.IsNullOrEmpty(_credentialsPath) || string.IsNullOrEmpty(postTimeStr) || string.IsNullOrEmpty(_rewardsCsvPath))
             {
                 Console.WriteLine("Environment variables are not set correctly.");
                 return;
@@ -256,18 +260,15 @@ namespace DiscordBotExample
 
         private static async Task ProcessRewards()
         {
-            var rewardsFileId = Environment.GetEnvironmentVariable("REWARDS_FILE_ID");
-            if (string.IsNullOrEmpty(rewardsFileId))
+            if (string.IsNullOrEmpty(_rewardsCsvPath) || !File.Exists(_rewardsCsvPath))
             {
-                Console.WriteLine("Rewards file ID is not set.");
+                Console.WriteLine("Rewards CSV file not found.");
                 return;
             }
 
-            var csvData = await DownloadCsvFromGoogleDrive(rewardsFileId);
-
-            if (csvData != null)
+            try
             {
-                using (var reader = new StringReader(csvData))
+                using (var reader = new StreamReader(_rewardsCsvPath))
                 using (var csv = new CsvReader(reader, new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)))
                 {
                     var records = csv.GetRecords<RewardRecordClass>().ToList();
@@ -291,49 +292,9 @@ namespace DiscordBotExample
                     }
                 }
             }
-            else
-            {
-                Console.WriteLine("Failed to download or read the rewards CSV file.");
-            }
-        }
-
-        private static async Task<string> DownloadCsvFromGoogleDrive(string fileId)
-        {
-            try
-            {
-                // Set up Google Drive API service
-                var credential = GoogleCredential.FromFile(_credentialsPath)
-                    .CreateScoped(DriveService.Scope.DriveReadonly);
-
-                var service = new DriveService(new BaseClientService.Initializer()
-                {
-                    HttpClientInitializer = credential,
-                    ApplicationName = "DiscordBotExample",
-                });
-
-                // Download the file
-                var request = service.Files.Get(fileId);
-                var stream = new MemoryStream();
-                request.MediaDownloader.ProgressChanged += progress =>
-                {
-                    if (progress.Status == Google.Apis.Download.DownloadStatus.Completed)
-                    {
-                        Console.WriteLine("Download complete.");
-                    }
-                };
-
-                await request.DownloadAsync(stream);
-
-                stream.Position = 0;
-                using (var reader = new StreamReader(stream))
-                {
-                    return reader.ReadToEnd();
-                }
-            }
             catch (Exception ex)
             {
-                Console.WriteLine($"An error occurred: {ex.Message}");
-                return null;
+                Console.WriteLine($"An error occurred while processing the rewards file: {ex.Message}");
             }
         }
 
