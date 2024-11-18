@@ -45,9 +45,11 @@ namespace Recuerdense_Bot
             // Start the Discord bot
             var bot = app.Services.GetRequiredService<Program>();
             await bot.StartBotAsync();
+            Console.WriteLine("Starting BOT...");
 
             // Start the API
             await app.RunAsync();
+            Console.WriteLine("Starting API...");
         }
         
         public async Task StartBotAsync()
