@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "OqRsFgHRl7cY56bSI1IQL7iCdqXvdVoikKRr6yUyu6ZULVMINRj33//CN4Vf3HCgadJw8B+pv+bzRlgGvMU/YA==",
+  "dgSpecHash": "UEXkTxDmi2E=",
   "success": true,
-  "projectFilePath": "D:\\Winnie\\Documentos\\recuerdate\\Recuerdense-Bot.csproj",
+  "projectFilePath": "C:\\Users\\Winnie\\RiderProjects\\recuerdate\\Recuerdense-Bot.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Winnie\\.nuget\\packages\\csvhelper\\33.0.1\\csvhelper.33.0.1.nupkg.sha512",
     "C:\\Users\\Winnie\\.nuget\\packages\\discord.net\\3.15.3\\discord.net.3.15.3.nupkg.sha512",
@@ -31,7 +31,11 @@
     "C:\\Users\\Winnie\\.nuget\\packages\\system.runtime\\4.3.0\\system.runtime.4.3.0.nupkg.sha512",
     "C:\\Users\\Winnie\\.nuget\\packages\\system.runtime.compilerservices.unsafe\\6.0.0\\system.runtime.compilerservices.unsafe.6.0.0.nupkg.sha512",
     "C:\\Users\\Winnie\\.nuget\\packages\\system.threading.tasks\\4.3.0\\system.threading.tasks.4.3.0.nupkg.sha512",
-    "C:\\Users\\Winnie\\.nuget\\packages\\system.valuetuple\\4.5.0\\system.valuetuple.4.5.0.nupkg.sha512"
+    "C:\\Users\\Winnie\\.nuget\\packages\\system.valuetuple\\4.5.0\\system.valuetuple.4.5.0.nupkg.sha512",
+    "C:\\Users\\Winnie\\.nuget\\packages\\microsoft.netcore.app.ref\\7.0.20\\microsoft.netcore.app.ref.7.0.20.nupkg.sha512",
+    "C:\\Users\\Winnie\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\7.0.20\\microsoft.windowsdesktop.app.ref.7.0.20.nupkg.sha512",
+    "C:\\Users\\Winnie\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\7.0.20\\microsoft.aspnetcore.app.ref.7.0.20.nupkg.sha512",
+    "C:\\Users\\Winnie\\.nuget\\packages\\microsoft.netcore.app.host.win-x64\\7.0.20\\microsoft.netcore.app.host.win-x64.7.0.20.nupkg.sha512"
   ],
   "logs": []
 }

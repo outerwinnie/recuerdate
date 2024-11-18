@@ -1,35 +1,27 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using System.Globalization;
+using CsvHelper;
 using Discord;
 using Discord.WebSocket;
-using Discord.Commands;
-using Discord.Rest;
-using CsvHelper;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
 
-namespace DiscordBotExample
+namespace Recuerdense_Bot
 {
     class Program
     {
-        private static List<string> _imageUrls;
-        private static Random _random = new Random();
-        private static DiscordSocketClient _client;
+        private static List<string>? _imageUrls;
+        private static readonly Random Random = new Random();
+        private static DiscordSocketClient? _client;
         private static ulong _channelId;
-        private static string _fileId;
-        private static string _credentialsPath;
+        private static string? _fileId;
+        private static string? _credentialsPath;
         private static TimeSpan _postTimeSpain;
         private static TimeZoneInfo _spainTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Central European Standard Time");
-        private static bool _isImageUrlsLoaded = false; // Flag to track if image URLs are loaded
+        private static bool _isImageUrlsLoaded; // Flag to track if image URLs are loaded
 
         // Path to the local rewards CSV file
-        private static string _rewardsCsvPath;
+        private static string? _rewardsCsvPath;
 
         // Timer for periodic rewards processing
         private static Timer _rewardsTimer;
@@ -87,7 +79,7 @@ namespace DiscordBotExample
             await _client.StartAsync();
 
             // Set up the timer for rewards processing
-            _rewardsTimer = new Timer(async _ =>
+            _rewardsTimer = new Timer(async void (_) =>
             {
                 await ProcessRewards();
             }, null, _rewardsInterval, _rewardsInterval);
@@ -151,12 +143,15 @@ namespace DiscordBotExample
                 .WithDescription("Send a random image from the list");
 
             // Replace 'your_guild_id_here' with your actual guild ID
-            var guildId = ulong.Parse(Environment.GetEnvironmentVariable("GUILD_ID")); // Example: 123456789012345678
-            var guild = _client.GetGuild(guildId);
+            var guildId = ulong.Parse(Environment.GetEnvironmentVariable("GUILD_ID") ?? throw new InvalidOperationException()); // Example: 123456789012345678
+            if (_client != null)
+            {
+                var guild = _client.GetGuild(guildId);
 
-            await guild.DeleteApplicationCommandsAsync(); // Clear existing commands in the guild
-            await _client.Rest.DeleteAllGlobalCommandsAsync(); // Optionally clear global commands
-            await guild.CreateApplicationCommandAsync(sendCommand.Build());
+                await guild.DeleteApplicationCommandsAsync(); // Clear existing commands in the guild
+                await _client.Rest.DeleteAllGlobalCommandsAsync(); // Optionally clear global commands
+                await guild.CreateApplicationCommandAsync(sendCommand.Build());
+            }
 
             Console.WriteLine("Slash command /send registered for guild");
         }
@@ -176,9 +171,9 @@ namespace DiscordBotExample
         {
             if (_isImageUrlsLoaded)
             {
-                if (_imageUrls.Count > 0)
+                if (_imageUrls != null && _imageUrls.Count > 0)
                 {
-                    int index = _random.Next(_imageUrls.Count);
+                    int index = Random.Next(_imageUrls.Count);
                     string randomUrl = _imageUrls[index];
                     await command.RespondAsync(randomUrl);
                 }
@@ -223,7 +218,7 @@ namespace DiscordBotExample
             await ScheduleNextPost();
         }
 
-        private static async Task<string> DownloadCsvFromGoogleDrive()
+        private static async Task<string?> DownloadCsvFromGoogleDrive()
         {
             try
             {
@@ -265,17 +260,20 @@ namespace DiscordBotExample
 
         private static async Task PostRandomImageUrl()
         {
-            var channel = _client.GetChannel(_channelId) as IMessageChannel;
+            if (_client != null)
+            {
+                var channel = _client.GetChannel(_channelId) as IMessageChannel;
 
-            if (channel != null && _imageUrls.Count > 0)
-            {
-                int index = _random.Next(_imageUrls.Count);
-                string randomUrl = _imageUrls[index];
-                await channel.SendMessageAsync(randomUrl);
-            }
-            else
-            {
-                Console.WriteLine("No URLs available.");
+                if (channel != null && _imageUrls != null && _imageUrls.Count > 0)
+                {
+                    int index = Random.Next(_imageUrls.Count);
+                    string randomUrl = _imageUrls[index];
+                    await channel.SendMessageAsync(randomUrl);
+                }
+                else
+                {
+                    Console.WriteLine("No URLs available.");
+                }
             }
         }
 
@@ -284,7 +282,7 @@ namespace DiscordBotExample
             try
             {
                 // Read the rewards CSV from local storage
-                var rewardsCsvData = File.ReadAllText(_rewardsCsvPath);
+                var rewardsCsvData = File.ReadAllText(_rewardsCsvPath ?? throw new InvalidOperationException());
 
                 // Parse the CSV data
                 using (var reader = new StringReader(rewardsCsvData))
