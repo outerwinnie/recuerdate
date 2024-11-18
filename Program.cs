@@ -5,6 +5,8 @@ using Discord.WebSocket;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Recuerdense_Bot
 {
@@ -26,7 +28,28 @@ namespace Recuerdense_Bot
         // Timer for periodic rewards processing
         private static TimeSpan _rewardsInterval;
 
-        static async Task Main()
+        
+        static async Task Main(string[] args)
+        {
+            var builder = WebApplication.CreateBuilder(args);
+
+            // Configure services
+            builder.Services.AddSingleton<DiscordSocketClient>();
+            builder.Services.AddSingleton<Program>(); // Register the bot
+            builder.Services.AddControllers(); // Register controllers for API
+
+            var app = builder.Build();
+            app.MapControllers(); // Map API endpoints
+
+            // Start the Discord bot
+            var bot = app.Services.GetRequiredService<Program>();
+            await bot.StartBotAsync();
+
+            // Start the API
+            await app.RunAsync();
+        }
+        
+        public async Task StartBotAsync()
         {
             // Read environment variables
             var token = Environment.GetEnvironmentVariable("DISCORD_BOT_TOKEN");
@@ -351,3 +374,4 @@ namespace Recuerdense_Bot
         }
     }
 }
+

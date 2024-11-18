@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Recuerdense-Bot")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2c4ee904fc61b6eb389a33e4f52fd15137b20a73")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+217c3184c116dbdbcc69941c33331763f25dd47e")]
 [assembly: System.Reflection.AssemblyProductAttribute("Recuerdense-Bot")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Recuerdense-Bot")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
