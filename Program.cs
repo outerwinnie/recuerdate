@@ -144,7 +144,7 @@ namespace Recuerdense_Bot
                 Console.WriteLine("Filtered URLs read from CSV:");
                 foreach (var url in _imageUrls)
                 {
-                    Console.WriteLine(url);
+                    //Console.WriteLine(url);
                 }
             }
             else
