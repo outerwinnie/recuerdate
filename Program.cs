@@ -1,6 +1,7 @@
 ﻿using System.Globalization;
 using CsvHelper;
 using Discord;
+using Discord.Interactions;
 using Discord.WebSocket;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Drive.v3;
@@ -10,7 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Recuerdense_Bot
 {
-    class Program
+    public class Program
     {
         private static List<string>? _imageUrls;
         private static readonly Random Random = new Random();
@@ -117,7 +118,7 @@ namespace Recuerdense_Bot
             return Task.CompletedTask;
         }
 
-        private static async Task OnReady()
+        private async Task OnReady()
         {
             Console.WriteLine("Bot is connected.");
 
@@ -179,18 +180,18 @@ namespace Recuerdense_Bot
             Console.WriteLine("Slash command /send registered for guild");
         }
 
-        private static async Task HandleInteractionAsync(SocketInteraction interaction)
+        private async Task HandleInteractionAsync(SocketInteraction interaction)
         {
             if (interaction is SocketSlashCommand command)
             {
                 if (command.Data.Name == "send")
                 {
-                    await HandleSendCommandAsync(command);
+                    await SendCommand();
                 }
             }
         }
 
-        private static async Task HandleSendCommandAsync(SocketSlashCommand command)
+        private async Task SendCommand()
         {
             if (_isImageUrlsLoaded)
             {
@@ -198,20 +199,12 @@ namespace Recuerdense_Bot
                 {
                     int index = Random.Next(_imageUrls.Count);
                     string randomUrl = _imageUrls[index];
-                    await command.RespondAsync(randomUrl);
+                    await PostRandomImageUrl();
                 }
-                else
-                {
-                    await command.RespondAsync("No URLs available.");
-                }
-            }
-            else
-            {
-                await command.RespondAsync("The bot is still loading data. Please try again later.");
             }
         }
 
-        private static async Task ScheduleNextPost()
+        private async Task ScheduleNextPost()
         {
             var nowUtc = DateTime.UtcNow;
             var spainTime = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, _spainTimeZone);
@@ -281,7 +274,7 @@ namespace Recuerdense_Bot
             }
         }
 
-        private static async Task PostRandomImageUrl()
+        public async Task PostRandomImageUrl()
         {
             if (_client != null)
             {
@@ -300,7 +293,7 @@ namespace Recuerdense_Bot
             }
         }
 
-        private static async Task ProcessRewards()
+        private async Task ProcessRewards()
         {
             try
             {
