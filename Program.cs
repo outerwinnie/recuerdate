@@ -358,14 +358,9 @@ namespace Recuerdense_Bot
 
         public class RewardRecordClass
         {
-            public RewardRecordClass(string quantity)
-            {
-                Quantity = quantity;
-            }
-
             public string RewardName => null!;
 
-            public string Quantity { get; set; }
+            public string? Quantity { get; set; }
         }
     }
 }
