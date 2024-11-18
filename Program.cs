@@ -351,13 +351,20 @@ namespace Recuerdense_Bot
 
         public class YourRecordClass
         {
-            public string image_url { get; set; }
-            public string has_spoilers { get; set; }
+            public string image_url => null!;
+
+            public string has_spoilers => null!;
         }
 
         public class RewardRecordClass
         {
-            public string RewardName { get; set; }
+            public RewardRecordClass(string quantity)
+            {
+                Quantity = quantity;
+            }
+
+            public string RewardName => null!;
+
             public string Quantity { get; set; }
         }
     }
