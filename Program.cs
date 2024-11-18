@@ -1,14 +1,17 @@
 ﻿using System.Globalization;
 using CsvHelper;
 using Discord;
+using Discord.Interactions;
 using Discord.WebSocket;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Recuerdense_Bot
 {
-    class Program
+    public class Program
     {
         private static List<string>? _imageUrls;
         private static readonly Random Random = new Random();
@@ -19,14 +22,30 @@ namespace Recuerdense_Bot
         private static TimeSpan _postTimeSpain;
         private static TimeZoneInfo _spainTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Central European Standard Time");
         private static bool _isImageUrlsLoaded; // Flag to track if image URLs are loaded
+        
+        static async Task Main(string[] args)
+        {
+            var builder = WebApplication.CreateBuilder(args);
 
-        // Path to the local rewards CSV file
-        private static string? _rewardsCsvPath;
+            // Configure services
+            builder.Services.AddSingleton<DiscordSocketClient>();
+            builder.Services.AddSingleton<Program>(); // Register the bot
+            builder.Services.AddControllers(); // Register controllers for API
 
-        // Timer for periodic rewards processing
-        private static TimeSpan _rewardsInterval;
+            var app = builder.Build();
+            app.MapControllers(); // Map API endpoints
 
-        static async Task Main()
+            // Start the API
+            Console.WriteLine("Starting API...");
+            _ = app.RunAsync();
+            
+            // Start the Discord bot
+            var bot = app.Services.GetRequiredService<Program>();
+            Console.WriteLine("Starting BOT...");
+            await bot.StartBotAsync();
+        }
+        
+        public async Task StartBotAsync()
         {
             // Read environment variables
             var token = Environment.GetEnvironmentVariable("DISCORD_BOT_TOKEN");
@@ -34,11 +53,9 @@ namespace Recuerdense_Bot
             _fileId = Environment.GetEnvironmentVariable("GOOGLE_DRIVE_FILE_ID");
             _credentialsPath = Environment.GetEnvironmentVariable("GOOGLE_CREDENTIALS_PATH");
             var postTimeStr = Environment.GetEnvironmentVariable("POST_TIME");
-            _rewardsCsvPath = Environment.GetEnvironmentVariable("REWARDS_CSV_PATH");
-            var rewardsIntervalStr = Environment.GetEnvironmentVariable("REWARDS_INTERVAL_MINUTES");
 
-            // Check if token, channelId, fileId, credentialsPath, postTime, rewardsCsvPath, or rewardsInterval is null or empty
-            if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(channelIdStr) || string.IsNullOrEmpty(_fileId) || string.IsNullOrEmpty(_credentialsPath) || string.IsNullOrEmpty(postTimeStr) || string.IsNullOrEmpty(_rewardsCsvPath) || string.IsNullOrEmpty(rewardsIntervalStr))
+            // Check if token, channelId, fileId, credentialsPath, or postTime is null or empty
+            if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(channelIdStr) || string.IsNullOrEmpty(_fileId) || string.IsNullOrEmpty(_credentialsPath) || string.IsNullOrEmpty(postTimeStr))
             {
                 Console.WriteLine("Environment variables are not set correctly.");
                 return;
@@ -57,16 +74,7 @@ namespace Recuerdense_Bot
                 Console.WriteLine("Invalid POST_TIME format. It must be in the format HH:mm:ss.");
                 return;
             }
-
-            // Parse rewards interval
-            if (!int.TryParse(rewardsIntervalStr, out int rewardsIntervalMinutes))
-            {
-                Console.WriteLine("Invalid REWARDS_INTERVAL_MINUTES format. It must be an integer.");
-                return;
-            }
-
-            _rewardsInterval = TimeSpan.FromMinutes(rewardsIntervalMinutes);
-
+            
             // Initialize the Discord client
             _client = new DiscordSocketClient();
             _client.Log += Log;
@@ -76,13 +84,6 @@ namespace Recuerdense_Bot
             // Start the bot
             await _client.LoginAsync(TokenType.Bot, token);
             await _client.StartAsync();
-
-            // Set up the timer for rewards processing
-            var timer = new Timer(async void (_) =>
-            {
-                await ProcessRewards();
-            }, null, _rewardsInterval, _rewardsInterval);
-            if (timer == null) throw new ArgumentNullException(nameof(timer));
 
             // Block the application until it is closed
             await Task.Delay(-1);
@@ -94,7 +95,7 @@ namespace Recuerdense_Bot
             return Task.CompletedTask;
         }
 
-        private static async Task OnReady()
+        private async Task OnReady()
         {
             Console.WriteLine("Bot is connected.");
 
@@ -107,8 +108,8 @@ namespace Recuerdense_Bot
                 using (var csvReader = new CsvReader(reader, new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)))
                 {
                     _imageUrls = csvReader.GetRecords<YourRecordClass>()
-                                    .Where(record => !string.IsNullOrWhiteSpace(record.ImageUrl) && record.HasSpoilers != "yes")
-                                    .Select(record => record.ImageUrl.Trim())
+                                    .Where(record => !string.IsNullOrWhiteSpace(record.image_url) && record.has_spoilers != "yes")
+                                    .Select(record => record.image_url.Trim())
                                     .ToList();
 
                     _isImageUrlsLoaded = true; // Set flag to true when URLs are loaded
@@ -117,7 +118,7 @@ namespace Recuerdense_Bot
                 Console.WriteLine("Filtered URLs read from CSV:");
                 foreach (var url in _imageUrls)
                 {
-                    Console.WriteLine(url);
+                    //Console.WriteLine(url);
                 }
             }
             else
@@ -125,9 +126,6 @@ namespace Recuerdense_Bot
                 Console.WriteLine("Failed to download or read the CSV file. Exiting...");
                 return;
             }
-
-            // Process rewards initially
-            await ProcessRewards();
 
             // Register commands
             await RegisterCommandsAsync();
@@ -156,18 +154,18 @@ namespace Recuerdense_Bot
             Console.WriteLine("Slash command /send registered for guild");
         }
 
-        private static async Task HandleInteractionAsync(SocketInteraction interaction)
+        private async Task HandleInteractionAsync(SocketInteraction interaction)
         {
             if (interaction is SocketSlashCommand command)
             {
                 if (command.Data.Name == "send")
                 {
-                    await HandleSendCommandAsync(command);
+                    await SendCommand();
                 }
             }
         }
 
-        private static async Task HandleSendCommandAsync(SocketSlashCommand command)
+        private async Task SendCommand()
         {
             if (_isImageUrlsLoaded)
             {
@@ -175,20 +173,12 @@ namespace Recuerdense_Bot
                 {
                     int index = Random.Next(_imageUrls.Count);
                     string randomUrl = _imageUrls[index];
-                    await command.RespondAsync(randomUrl);
+                    await PostRandomImageUrl();
                 }
-                else
-                {
-                    await command.RespondAsync("No URLs available.");
-                }
-            }
-            else
-            {
-                await command.RespondAsync("The bot is still loading data. Please try again later.");
             }
         }
 
-        private static async Task ScheduleNextPost()
+        private async Task ScheduleNextPost()
         {
             var nowUtc = DateTime.UtcNow;
             var spainTime = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, _spainTimeZone);
@@ -258,7 +248,7 @@ namespace Recuerdense_Bot
             }
         }
 
-        private static async Task PostRandomImageUrl()
+        public async Task PostRandomImageUrl()
         {
             if (_client != null)
             {
@@ -277,77 +267,11 @@ namespace Recuerdense_Bot
             }
         }
 
-        private static async Task ProcessRewards()
-        {
-            try
-            {
-                // Read the rewards CSV from local storage
-                var rewardsCsvData = File.ReadAllText(_rewardsCsvPath ?? throw new InvalidOperationException());
-
-                // Parse the CSV data
-                using (var reader = new StringReader(rewardsCsvData))
-                using (var csvReader = new CsvReader(reader, new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)))
-                {
-                    var records = csvReader.GetRecords<RewardRecordClass>().ToList();
-
-                    foreach (var record in records)
-                    {
-                        if (record.RewardName.Equals("recuerdate", StringComparison.OrdinalIgnoreCase))
-                        {
-                            if (int.TryParse(record.Quantity, out int quantity) && quantity > 0)
-                            {
-                                Console.WriteLine($"Processing reward '{record.RewardName}' with quantity {quantity}.");
-                                for (int i = 0; i < quantity; i++)
-                                {
-                                    await PostRandomImageUrl();
-                                }
-
-                                // Decrease the quantity after sending the images
-                                record.Quantity = "0"; // Set quantity to 0 after processing
-                            }
-                            else
-                            {
-                                Console.WriteLine($"Invalid Quantity value for record with RewardName '{record.RewardName}'.");
-                            }
-                        }
-                    }
-
-                    // Write the updated rewards data back to the CSV file
-                    using (var writer = new StreamWriter(_rewardsCsvPath))
-                    using (var csvWriter = new CsvWriter(writer, new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)))
-                    {
-                        csvWriter.WriteRecords(records);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"An error occurred while processing the rewards file: {ex.Message}");
-            }
-        }
-
         public class YourRecordClass
         {
-            public YourRecordClass(string imageUrl, string hasSpoilers)
-            {
-                ImageUrl = imageUrl;
-                HasSpoilers = hasSpoilers;
-            }
-
-            public string ImageUrl { get; set; }
-            public string HasSpoilers { get; set; }
-        }
-
-        public class RewardRecordClass
-        {
-            public RewardRecordClass(string rewardName, string quantity)
-            {
-                RewardName = rewardName;
-                Quantity = quantity;
-            }
-
-            public string RewardName { get; set; }
-            public string Quantity { get; set; }
+            public string image_url { get; set; }
+            public string has_spoilers { get; set; }
         }
     }
 }
+
