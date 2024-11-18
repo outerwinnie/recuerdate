@@ -42,15 +42,14 @@ namespace Recuerdense_Bot
             var app = builder.Build();
             app.MapControllers(); // Map API endpoints
 
+            // Start the API
+            Console.WriteLine("Starting API...");
+            await app.RunAsync();
+            
             // Start the Discord bot
             var bot = app.Services.GetRequiredService<Program>();
             Console.WriteLine("Starting BOT...");
             await bot.StartBotAsync();
-            
-
-            // Start the API
-            Console.WriteLine("Starting API...");
-            await app.RunAsync();
         }
         
         public async Task StartBotAsync()
