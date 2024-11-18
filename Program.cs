@@ -24,10 +24,9 @@ namespace Recuerdense_Bot
         private static string? _rewardsCsvPath;
 
         // Timer for periodic rewards processing
-        private static Timer _rewardsTimer;
         private static TimeSpan _rewardsInterval;
 
-        static async Task Main(string[] args)
+        static async Task Main()
         {
             // Read environment variables
             var token = Environment.GetEnvironmentVariable("DISCORD_BOT_TOKEN");
@@ -79,10 +78,11 @@ namespace Recuerdense_Bot
             await _client.StartAsync();
 
             // Set up the timer for rewards processing
-            _rewardsTimer = new Timer(async void (_) =>
+            var timer = new Timer(async void (_) =>
             {
                 await ProcessRewards();
             }, null, _rewardsInterval, _rewardsInterval);
+            if (timer == null) throw new ArgumentNullException(nameof(timer));
 
             // Block the application until it is closed
             await Task.Delay(-1);
@@ -107,8 +107,8 @@ namespace Recuerdense_Bot
                 using (var csvReader = new CsvReader(reader, new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)))
                 {
                     _imageUrls = csvReader.GetRecords<YourRecordClass>()
-                                    .Where(record => !string.IsNullOrWhiteSpace(record.image_url) && record.has_spoilers != "yes")
-                                    .Select(record => record.image_url.Trim())
+                                    .Where(record => !string.IsNullOrWhiteSpace(record.ImageUrl) && record.HasSpoilers != "yes")
+                                    .Select(record => record.ImageUrl.Trim())
                                     .ToList();
 
                     _isImageUrlsLoaded = true; // Set flag to true when URLs are loaded
@@ -328,12 +328,24 @@ namespace Recuerdense_Bot
 
         public class YourRecordClass
         {
-            public string image_url { get; set; }
-            public string has_spoilers { get; set; }
+            public YourRecordClass(string imageUrl, string hasSpoilers)
+            {
+                ImageUrl = imageUrl;
+                HasSpoilers = hasSpoilers;
+            }
+
+            public string ImageUrl { get; set; }
+            public string HasSpoilers { get; set; }
         }
 
         public class RewardRecordClass
         {
+            public RewardRecordClass(string rewardName, string quantity)
+            {
+                RewardName = rewardName;
+                Quantity = quantity;
+            }
+
             public string RewardName { get; set; }
             public string Quantity { get; set; }
         }
