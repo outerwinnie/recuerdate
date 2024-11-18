@@ -130,8 +130,8 @@ namespace Recuerdense_Bot
                 using (var csvReader = new CsvReader(reader, new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)))
                 {
                     _imageUrls = csvReader.GetRecords<YourRecordClass>()
-                                    .Where(record => !string.IsNullOrWhiteSpace(record.ImageUrl) && record.HasSpoilers != "yes")
-                                    .Select(record => record.ImageUrl.Trim())
+                                    .Where(record => !string.IsNullOrWhiteSpace(record.image_url) && record.has_spoilers != "yes")
+                                    .Select(record => record.image_url.Trim())
                                     .ToList();
 
                     _isImageUrlsLoaded = true; // Set flag to true when URLs are loaded
@@ -353,12 +353,12 @@ namespace Recuerdense_Bot
         {
             public YourRecordClass(string imageUrl, string hasSpoilers)
             {
-                ImageUrl = imageUrl;
-                HasSpoilers = hasSpoilers;
+                image_url = imageUrl;
+                has_spoilers = hasSpoilers;
             }
 
-            public string ImageUrl { get; set; }
-            public string HasSpoilers { get; set; }
+            public string image_url { get; set; }
+            public string has_spoilers { get; set; }
         }
 
         public class RewardRecordClass
