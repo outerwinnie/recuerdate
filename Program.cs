@@ -199,10 +199,10 @@ namespace Recuerdense_Bot
         {
             if (_isMemeUrlsLoaded)
             {
-                if (_memeUrls != null && _memeUrls.Count > 0)
+                if (_memeUrls.Count > 0)
                 {
                     Random.Next(_memeUrls.Count);
-                    await PostRandomImageUrl();
+                    await PostRandomMemeUrl();
                 }
             }
         }
@@ -287,6 +287,25 @@ namespace Recuerdense_Bot
                 {
                     int index = Random.Next(_imageUrls.Count);
                     string randomUrl = _imageUrls[index];
+                    await channel.SendMessageAsync(randomUrl);
+                }
+                else
+                {
+                    Console.WriteLine("No URLs available.");
+                }
+            }
+        }
+        
+        public async Task PostRandomMemeUrl()
+        {
+            if (_client != null)
+            {
+                var channel = _client.GetChannel(_channelId) as IMessageChannel;
+
+                if (channel != null && _memeUrls.Count > 0)
+                {
+                    int index = Random.Next(_memeUrls.Count);
+                    string randomUrl = _memeUrls[index];
                     await channel.SendMessageAsync(randomUrl);
                 }
                 else
