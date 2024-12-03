@@ -13,7 +13,7 @@ namespace Recuerdense_Bot
     public class Program
     {
         private static List<string>? _imageUrls;
-        private static List<string> _memeUrls;
+        private static List<string>? _memeUrls;
         private static readonly Random Random = new Random();
         private static DiscordSocketClient? _client;
         private static ulong _channelId;
@@ -124,9 +124,9 @@ namespace Recuerdense_Bot
                 }
 
                 Console.WriteLine("Filtered URLs read from CSV:");
-                foreach (var url in _imageUrls)
+                foreach (var url in _memeUrls)
                 {
-                    //Console.WriteLine(url);
+                    Console.WriteLine(url);
                 }
             }
             else
@@ -173,11 +173,13 @@ namespace Recuerdense_Bot
             {
                 if (command.Data.Name == "imagen")
                 {
+                    Console.WriteLine("Trying to send image");
                     await SendCommand();
                 }
                 
                 else if (command.Data.Name == "meme")
                 {
+                    Console.WriteLine("Trying to send meme");
                     await SendMeme();
                 }
             }
@@ -190,6 +192,7 @@ namespace Recuerdense_Bot
                 if (_imageUrls != null && _imageUrls.Count > 0)
                 {
                     Random.Next(_imageUrls.Count);
+                    Console.WriteLine("Sending image urls");
                     await PostRandomImageUrl();
                 }
             }
@@ -199,9 +202,10 @@ namespace Recuerdense_Bot
         {
             if (_isMemeUrlsLoaded)
             {
-                if (_memeUrls.Count > 0)
+                if (_memeUrls != null && _memeUrls.Count > 0)
                 {
                     Random.Next(_memeUrls.Count);
+                    Console.WriteLine("Sending meme urls");
                     await PostRandomMemeUrl();
                 }
             }
@@ -302,7 +306,7 @@ namespace Recuerdense_Bot
             {
                 var channel = _client.GetChannel(_channelId) as IMessageChannel;
 
-                if (channel != null && _memeUrls.Count > 0)
+                if (channel != null && _memeUrls != null && _memeUrls.Count > 0)
                 {
                     int index = Random.Next(_memeUrls.Count);
                     string randomUrl = _memeUrls[index];
