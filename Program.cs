@@ -179,21 +179,33 @@ namespace Recuerdense_Bot
 
         private async Task HandleInteractionAsync(SocketInteraction interaction)
         {
-            if (interaction is SocketSlashCommand command)
+            try
             {
-                if (command.Data.Name == "imagen")
+                if (interaction is SocketSlashCommand command)
                 {
-                    Console.WriteLine("Trying to send image");
-                    await SendCommand();
+                    if (command.Data.Name == "imagen")
+                    {
+                        // Handle the command here
+                        await SendCommand();
+                    }
+                    else if (command.Data.Name == "meme")
+                    {
+                        // Handle the meme command here
+                        await SendMeme();
+                    }
                 }
-                
-                else if (command.Data.Name == "meme")
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error processing command: {ex.Message}");
+                // Respond to user with an error message
+                if (interaction is SocketSlashCommand command)
                 {
-                    Console.WriteLine("Trying to send meme");
-                    await SendMeme();
+                    await command.RespondAsync("An error occurred while processing your request.");
                 }
             }
         }
+
 
         private async Task SendCommand()
         {
