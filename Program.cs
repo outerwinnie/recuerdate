@@ -1,7 +1,6 @@
 ﻿using System.Globalization;
 using CsvHelper;
 using Discord;
-using Discord.Interactions;
 using Discord.WebSocket;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Drive.v3;
@@ -14,14 +13,16 @@ namespace Recuerdense_Bot
     public class Program
     {
         private static List<string>? _imageUrls;
+        private static List<string>? _memeUrls;
         private static readonly Random Random = new Random();
         private static DiscordSocketClient? _client;
         private static ulong _channelId;
         private static string? _fileId;
         private static string? _credentialsPath;
         private static TimeSpan _postTimeSpain;
-        private static TimeZoneInfo _spainTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Central European Standard Time");
+        private static readonly TimeZoneInfo SpainTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Central European Standard Time");
         private static bool _isImageUrlsLoaded; // Flag to track if image URLs are loaded
+        private static bool _isMemeUrlsLoaded; // Flag to track if image URLs are loaded
         
         static async Task Main(string[] args)
         {
@@ -107,26 +108,43 @@ namespace Recuerdense_Bot
                 using (var reader = new StringReader(csvData))
                 using (var csvReader = new CsvReader(reader, new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)))
                 {
-                    _imageUrls = csvReader.GetRecords<YourRecordClass>()
-                                    .Where(record => !string.IsNullOrWhiteSpace(record.image_url) && record.has_spoilers != "yes")
-                                    .Select(record => record.image_url.Trim())
-                                    .ToList();
+                    // Read all records into a list first
+                    var allRecords = csvReader.GetRecords<YourRecordClass>().ToList();
+        
+                    // Filter for _imageUrls (without considering channel_name)
+                    _imageUrls = allRecords
+                        .Where(record => !string.IsNullOrWhiteSpace(record.image_url) && record.has_spoilers != "yes")
+                        .Select(record => record.image_url.Trim())
+                        .ToList();
 
-                    _isImageUrlsLoaded = true; // Set flag to true when URLs are loaded
-                }
+                    _isImageUrlsLoaded = true; // Set flag when image URLs are loaded
 
-                Console.WriteLine("Filtered URLs read from CSV:");
-                foreach (var url in _imageUrls)
-                {
-                    //Console.WriteLine(url);
+                    // Filter for _memeUrls (considering channel_name)
+                    _memeUrls = allRecords
+                        .Where(record =>
+                            !string.IsNullOrWhiteSpace(record.image_url) &&
+                            !string.IsNullOrWhiteSpace(record.channel_name) &&
+                            record.channel_name.Trim().Equals("memitos-y-animalitos🤡", StringComparison.OrdinalIgnoreCase))
+                        .Select(record => record.image_url.Trim())
+                        .ToList();
+
+                    _isMemeUrlsLoaded = true; // Set flag when meme URLs are loaded
+
+                    // Logging to verify if URLs are correctly filtered
+                    //Console.WriteLine("Filtered URLs for memes:");
+                    //foreach (var url in _memeUrls)
+                    //{
+                        //Console.WriteLine(url);
+                    //}
                 }
             }
+
             else
             {
                 Console.WriteLine("Failed to download or read the CSV file. Exiting...");
                 return;
             }
-
+            
             // Register commands
             await RegisterCommandsAsync();
 
@@ -137,8 +155,12 @@ namespace Recuerdense_Bot
         private static async Task RegisterCommandsAsync()
         {
             var sendCommand = new SlashCommandBuilder()
-                .WithName("send")
-                .WithDescription("Send a random image from the list");
+                .WithName("imagen")
+                .WithDescription("Envia una imagen ramdom");
+
+            var sendMemeCommand = new SlashCommandBuilder()
+                .WithName("meme")
+                .WithDescription("Envia un meme ramdom");
 
             // Replace 'your_guild_id_here' with your actual guild ID
             var guildId = ulong.Parse(Environment.GetEnvironmentVariable("GUILD_ID") ?? throw new InvalidOperationException()); // Example: 123456789012345678
@@ -149,31 +171,66 @@ namespace Recuerdense_Bot
                 await guild.DeleteApplicationCommandsAsync(); // Clear existing commands in the guild
                 await _client.Rest.DeleteAllGlobalCommandsAsync(); // Optionally clear global commands
                 await guild.CreateApplicationCommandAsync(sendCommand.Build());
+                await guild.CreateApplicationCommandAsync(sendMemeCommand.Build());
             }
 
-            Console.WriteLine("Slash command /send registered for guild");
+            Console.WriteLine("Slash command /imagen and /meme registered for guild");
         }
 
         private async Task HandleInteractionAsync(SocketInteraction interaction)
         {
-            if (interaction is SocketSlashCommand command)
+            try
             {
-                if (command.Data.Name == "send")
+                if (interaction is SocketSlashCommand command)
                 {
-                    await SendCommand();
+                    if (command.Data.Name == "imagen")
+                    {
+                        // Handle the command here
+                        await SendCommand();
+                        await interaction.RespondAsync("Hecho!", ephemeral: true);
+                    }
+                    else if (command.Data.Name == "meme")
+                    {
+                        // Handle the meme command here
+                        await SendMeme();
+                        await interaction.RespondAsync("Hecho!", ephemeral: true);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error processing command: {ex.Message}");
+                // Respond to user with an error message
+                if (interaction is SocketSlashCommand command)
+                {
+                    await command.RespondAsync("An error occurred while processing your request.");
                 }
             }
         }
-
+        
         private async Task SendCommand()
         {
             if (_isImageUrlsLoaded)
             {
                 if (_imageUrls != null && _imageUrls.Count > 0)
                 {
-                    int index = Random.Next(_imageUrls.Count);
-                    string randomUrl = _imageUrls[index];
+                    Random.Next(_imageUrls.Count);
+                    Console.WriteLine("Sending image urls");
                     await PostRandomImageUrl();
+                }
+            }
+        }
+
+        private async Task SendMeme()
+        {
+            if (_isMemeUrlsLoaded)
+            {
+                if (_memeUrls != null && _memeUrls.Count > 0)
+                {
+                    Console.WriteLine(_memeUrls.Count + " memes");
+                    Random.Next(_memeUrls.Count);
+                    Console.WriteLine("Sending meme urls");
+                    await PostRandomMemeUrl();
                 }
             }
         }
@@ -181,7 +238,7 @@ namespace Recuerdense_Bot
         private async Task ScheduleNextPost()
         {
             var nowUtc = DateTime.UtcNow;
-            var spainTime = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, _spainTimeZone);
+            var spainTime = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, SpainTimeZone);
             
             // Specify that nextPostTimeSpain is unspecified in terms of kind because we will convert it to a specific time zone
             var nextPostTimeSpain = DateTime.SpecifyKind(DateTime.Today.Add(_postTimeSpain), DateTimeKind.Unspecified);
@@ -193,7 +250,7 @@ namespace Recuerdense_Bot
             }
 
             // Convert the unspecified time to Spain time zone and then to UTC
-            nextPostTimeSpain = TimeZoneInfo.ConvertTimeToUtc(nextPostTimeSpain, _spainTimeZone);
+            nextPostTimeSpain = TimeZoneInfo.ConvertTimeToUtc(nextPostTimeSpain, SpainTimeZone);
 
             // Calculate the delay
             var delay = nextPostTimeSpain - nowUtc;
@@ -266,11 +323,31 @@ namespace Recuerdense_Bot
                 }
             }
         }
+        
+        public async Task PostRandomMemeUrl()
+        {
+            if (_client != null)
+            {
+                var channel = _client.GetChannel(_channelId) as IMessageChannel;
+
+                if (channel != null && _memeUrls != null && _memeUrls.Count > 0)
+                {
+                    int index = Random.Next(_memeUrls.Count);
+                    string randomUrl = _memeUrls[index];
+                    await channel.SendMessageAsync(randomUrl);
+                }
+                else
+                {
+                    Console.WriteLine("No URLs available.");
+                }
+            }
+        }
 
         public class YourRecordClass
         {
             public string image_url { get; set; }
             public string has_spoilers { get; set; }
+            public string channel_name { get; set; }
         }
     }
 }
