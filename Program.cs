@@ -194,6 +194,9 @@ namespace Recuerdense_Bot
                         await SendMeme();
                     }
                 }
+                
+                await interaction.FollowupAsync("Done!", ephemeral: true);
+                
             }
             catch (Exception ex)
             {
