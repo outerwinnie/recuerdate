@@ -116,7 +116,9 @@ namespace Recuerdense_Bot
                     _isImageUrlsLoaded = true; // Set flag to true when URLs are loaded
                     
                     _memeUrls = csvReader.GetRecords<YourRecordClass>()
-                                    .Where(record => !string.IsNullOrWhiteSpace(record.image_url) && record.channel_name == "memitos-y-animalitos\ud83e\udd21")
+                                    .Where(record => 
+                                        !string.IsNullOrWhiteSpace(record.image_url) && 
+                                        record.channel_name == "memitos-y-animalitos🤡") // Filter by channel_name only
                                     .Select(record => record.image_url.Trim())
                                     .ToList();
 
