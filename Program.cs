@@ -134,7 +134,10 @@ namespace Recuerdense_Bot
                 Console.WriteLine("Failed to download or read the CSV file. Exiting...");
                 return;
             }
-
+            
+            var targetChannelName = "memitos-y-animalitos\ud83e\udd21";
+            Console.WriteLine("Target channel name: " + targetChannelName);
+            
             // Register commands
             await RegisterCommandsAsync();
 
