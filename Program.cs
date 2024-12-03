@@ -187,16 +187,15 @@ namespace Recuerdense_Bot
                     {
                         // Handle the command here
                         await SendCommand();
+                        await interaction.FollowupAsync("Hecho!", ephemeral: true);
                     }
                     else if (command.Data.Name == "meme")
                     {
                         // Handle the meme command here
                         await SendMeme();
+                        await interaction.FollowupAsync("Hecho!", ephemeral: true);
                     }
                 }
-                
-                await interaction.FollowupAsync("Hecho!", ephemeral: true);
-                
             }
             catch (Exception ex)
             {
@@ -208,8 +207,7 @@ namespace Recuerdense_Bot
                 }
             }
         }
-
-
+        
         private async Task SendCommand()
         {
             if (_isImageUrlsLoaded)
