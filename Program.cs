@@ -1,7 +1,6 @@
 ﻿using System.Globalization;
 using CsvHelper;
 using Discord;
-using Discord.Interactions;
 using Discord.WebSocket;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Drive.v3;
@@ -20,7 +19,7 @@ namespace Recuerdense_Bot
         private static string? _fileId;
         private static string? _credentialsPath;
         private static TimeSpan _postTimeSpain;
-        private static TimeZoneInfo _spainTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Central European Standard Time");
+        private static readonly TimeZoneInfo SpainTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Central European Standard Time");
         private static bool _isImageUrlsLoaded; // Flag to track if image URLs are loaded
         
         static async Task Main(string[] args)
@@ -171,8 +170,7 @@ namespace Recuerdense_Bot
             {
                 if (_imageUrls != null && _imageUrls.Count > 0)
                 {
-                    int index = Random.Next(_imageUrls.Count);
-                    string randomUrl = _imageUrls[index];
+                    Random.Next(_imageUrls.Count);
                     await PostRandomImageUrl();
                 }
             }
@@ -181,7 +179,7 @@ namespace Recuerdense_Bot
         private async Task ScheduleNextPost()
         {
             var nowUtc = DateTime.UtcNow;
-            var spainTime = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, _spainTimeZone);
+            var spainTime = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, SpainTimeZone);
             
             // Specify that nextPostTimeSpain is unspecified in terms of kind because we will convert it to a specific time zone
             var nextPostTimeSpain = DateTime.SpecifyKind(DateTime.Today.Add(_postTimeSpain), DateTimeKind.Unspecified);
@@ -193,7 +191,7 @@ namespace Recuerdense_Bot
             }
 
             // Convert the unspecified time to Spain time zone and then to UTC
-            nextPostTimeSpain = TimeZoneInfo.ConvertTimeToUtc(nextPostTimeSpain, _spainTimeZone);
+            nextPostTimeSpain = TimeZoneInfo.ConvertTimeToUtc(nextPostTimeSpain, SpainTimeZone);
 
             // Calculate the delay
             var delay = nextPostTimeSpain - nowUtc;
