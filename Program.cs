@@ -113,7 +113,7 @@ namespace Recuerdense_Bot
         
                     // Filter for _imageUrls (without considering channel_name)
                     _imageUrls = allRecords
-                        .Where(record => !string.IsNullOrWhiteSpace(record.image_url))
+                        .Where(record => !string.IsNullOrWhiteSpace(record.image_url) && record.has_spoilers != "yes")
                         .Select(record => record.image_url.Trim())
                         .ToList();
 
@@ -187,13 +187,13 @@ namespace Recuerdense_Bot
                     {
                         // Handle the command here
                         await SendCommand();
-                        await interaction.FollowupAsync("Hecho!", ephemeral: true);
+                        await interaction.RespondAsync("Hecho!", ephemeral: true);
                     }
                     else if (command.Data.Name == "meme")
                     {
                         // Handle the meme command here
                         await SendMeme();
-                        await interaction.FollowupAsync("Hecho!", ephemeral: true);
+                        await interaction.RespondAsync("Hecho!", ephemeral: true);
                     }
                 }
             }
