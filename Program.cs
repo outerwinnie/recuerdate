@@ -108,19 +108,11 @@ namespace Recuerdense_Bot
                 using (var reader = new StringReader(csvData))
                 using (var csvReader = new CsvReader(reader, new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)))
                 {
-                    
-                    var records = csvReader.GetRecords<YourRecordClass>().ToList();
-                    
-                    foreach (var record in records)
-                    {
-                        Console.WriteLine($"Record: {record.channel_name} | {record.image_url} | {record.has_spoilers}");
-                    }
-                    
                     _memeUrls = csvReader.GetRecords<YourRecordClass>()
                                     .Where(record => 
                                         !string.IsNullOrWhiteSpace(record.image_url) && 
                                         !string.IsNullOrWhiteSpace(record.channel_name) && 
-                                        record.channel_name.Trim().Equals("memitos-y-animalitos🤡", StringComparison.OrdinalIgnoreCase)) // Case-insensitive and trim comparison
+                                        record.channel_name.Trim().Equals("memitos-y-animalitos\ud83e\udd21", StringComparison.OrdinalIgnoreCase)) // Case-insensitive and trim comparison
                                     .Select(record => record.image_url.Trim())
                                     .ToList();
                     
