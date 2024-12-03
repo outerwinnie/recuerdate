@@ -108,16 +108,19 @@ namespace Recuerdense_Bot
                 using (var reader = new StringReader(csvData))
                 using (var csvReader = new CsvReader(reader, new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)))
                 {
-                    // Load _imageUrls first, no filtering by channel_name
-                    _imageUrls = csvReader.GetRecords<YourRecordClass>()
+                    // Read all records into a list first
+                    var allRecords = csvReader.GetRecords<YourRecordClass>().ToList();
+        
+                    // Filter for _imageUrls (without considering channel_name)
+                    _imageUrls = allRecords
                         .Where(record => !string.IsNullOrWhiteSpace(record.image_url))
                         .Select(record => record.image_url.Trim())
                         .ToList();
 
                     _isImageUrlsLoaded = true; // Set flag when image URLs are loaded
 
-                    // Now load _memeUrls, filtering by channel_name
-                    _memeUrls = csvReader.GetRecords<YourRecordClass>()
+                    // Filter for _memeUrls (considering channel_name)
+                    _memeUrls = allRecords
                         .Where(record =>
                             !string.IsNullOrWhiteSpace(record.image_url) &&
                             !string.IsNullOrWhiteSpace(record.channel_name) &&
@@ -127,7 +130,8 @@ namespace Recuerdense_Bot
 
                     _isMemeUrlsLoaded = true; // Set flag when meme URLs are loaded
 
-                    Console.WriteLine("Filtered URLs read from CSV:");
+                    // Logging to verify if URLs are correctly filtered
+                    Console.WriteLine("Filtered URLs for memes:");
                     foreach (var url in _memeUrls)
                     {
                         Console.WriteLine(url);
@@ -140,9 +144,6 @@ namespace Recuerdense_Bot
                 Console.WriteLine("Failed to download or read the CSV file. Exiting...");
                 return;
             }
-            
-            var targetChannelName = "memitos-y-animalitos\ud83e\udd21";
-            Console.WriteLine("Target channel name: " + targetChannelName);
             
             // Register commands
             await RegisterCommandsAsync();
