@@ -13,14 +13,29 @@ public class BotController : ControllerBase
         _bot = bot;
     }
 
-    // POST /api/bot/send
-    [HttpPost("send")]
+    // POST /api/bot/image
+    [HttpPost("image")]
     public async Task<IActionResult> SendImage()
     {
         try
         {
             await _bot.PostRandomImageUrl();
             return Ok("Image sent successfully.");
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error: {ex.Message}");
+        }
+    }
+    
+    // POST /api/bot/meme
+    [HttpPost("meme")]
+    public async Task<IActionResult> SendMeme()
+    {
+        try
+        {
+            await _bot.PostRandomMemeUrl();
+            return Ok("Meme sent successfully.");
         }
         catch (Exception ex)
         {
