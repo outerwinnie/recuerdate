@@ -195,7 +195,7 @@ namespace Recuerdense_Bot
                     }
                 }
                 
-                await interaction.FollowupAsync("Done!", ephemeral: true);
+                await interaction.FollowupAsync("Hecho!", ephemeral: true);
                 
             }
             catch (Exception ex)
