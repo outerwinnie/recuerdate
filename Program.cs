@@ -108,16 +108,25 @@ namespace Recuerdense_Bot
                 using (var reader = new StringReader(csvData))
                 using (var csvReader = new CsvReader(reader, new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)))
                 {
+                    // Load _imageUrls first, no filtering by channel_name
+                    _imageUrls = csvReader.GetRecords<YourRecordClass>()
+                        .Where(record => !string.IsNullOrWhiteSpace(record.image_url))
+                        .Select(record => record.image_url.Trim())
+                        .ToList();
+
+                    _isImageUrlsLoaded = true; // Set flag when image URLs are loaded
+
+                    // Now load _memeUrls, filtering by channel_name
                     _memeUrls = csvReader.GetRecords<YourRecordClass>()
-                                    .Where(record => 
-                                        !string.IsNullOrWhiteSpace(record.image_url) && 
-                                        !string.IsNullOrWhiteSpace(record.channel_name) && 
-                                        record.channel_name.Trim().Equals("memitos-y-animalitos\ud83e\udd21", StringComparison.OrdinalIgnoreCase)) // Case-insensitive and trim comparison
-                                    .Select(record => record.image_url.Trim())
-                                    .ToList();
-                    
-                    _isMemeUrlsLoaded = true;
-                    
+                        .Where(record =>
+                            !string.IsNullOrWhiteSpace(record.image_url) &&
+                            !string.IsNullOrWhiteSpace(record.channel_name) &&
+                            record.channel_name.Trim().Equals("memitos-y-animalitos🤡", StringComparison.OrdinalIgnoreCase))
+                        .Select(record => record.image_url.Trim())
+                        .ToList();
+
+                    _isMemeUrlsLoaded = true; // Set flag when meme URLs are loaded
+
                     Console.WriteLine("Filtered URLs read from CSV:");
                     foreach (var url in _memeUrls)
                     {
@@ -125,6 +134,7 @@ namespace Recuerdense_Bot
                     }
                 }
             }
+
             else
             {
                 Console.WriteLine("Failed to download or read the CSV file. Exiting...");
