@@ -131,11 +131,11 @@ namespace Recuerdense_Bot
                     _isMemeUrlsLoaded = true; // Set flag when meme URLs are loaded
 
                     // Logging to verify if URLs are correctly filtered
-                    Console.WriteLine("Filtered URLs for memes:");
-                    foreach (var url in _memeUrls)
-                    {
-                        Console.WriteLine(url);
-                    }
+                    //Console.WriteLine("Filtered URLs for memes:");
+                    //foreach (var url in _memeUrls)
+                    //{
+                        //Console.WriteLine(url);
+                    //}
                 }
             }
 
