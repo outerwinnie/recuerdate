@@ -115,14 +115,6 @@ namespace Recuerdense_Bot
                     {
                         Console.WriteLine($"Record: {record.channel_name} | {record.image_url} | {record.has_spoilers}");
                     }
-
-                    
-                    _imageUrls = csvReader.GetRecords<YourRecordClass>()
-                                    .Where(record => !string.IsNullOrWhiteSpace(record.image_url) && record.has_spoilers != "yes")
-                                    .Select(record => record.image_url.Trim())
-                                    .ToList();
-
-                    _isImageUrlsLoaded = true; // Set flag to true when URLs are loaded
                     
                     _memeUrls = csvReader.GetRecords<YourRecordClass>()
                                     .Where(record => 
