@@ -124,6 +124,12 @@ namespace Recuerdense_Bot
                                     .ToList();
 
                     _isMemeUrlsLoaded = true;
+                    
+                    Console.WriteLine("Filtered URLs read from CSV:");
+                    foreach (var url in _memeUrls)
+                    {
+                        Console.WriteLine(url);
+                    }
                 }
 
                 Console.WriteLine("Filtered URLs read from CSV:");
@@ -210,6 +216,7 @@ namespace Recuerdense_Bot
             {
                 if (_memeUrls != null && _memeUrls.Count > 0)
                 {
+                    Console.WriteLine(_memeUrls.Count + " memes");
                     Random.Next(_memeUrls.Count);
                     Console.WriteLine("Sending meme urls");
                     await PostRandomMemeUrl();
