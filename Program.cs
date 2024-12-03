@@ -13,6 +13,7 @@ namespace Recuerdense_Bot
     public class Program
     {
         private static List<string>? _imageUrls;
+        private static List<string> _memeUrls;
         private static readonly Random Random = new Random();
         private static DiscordSocketClient? _client;
         private static ulong _channelId;
@@ -21,6 +22,7 @@ namespace Recuerdense_Bot
         private static TimeSpan _postTimeSpain;
         private static readonly TimeZoneInfo SpainTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Central European Standard Time");
         private static bool _isImageUrlsLoaded; // Flag to track if image URLs are loaded
+        private static bool _isMemeUrlsLoaded; // Flag to track if image URLs are loaded
         
         static async Task Main(string[] args)
         {
@@ -112,6 +114,13 @@ namespace Recuerdense_Bot
                                     .ToList();
 
                     _isImageUrlsLoaded = true; // Set flag to true when URLs are loaded
+                    
+                    _memeUrls = csvReader.GetRecords<YourRecordClass>()
+                                    .Where(record => !string.IsNullOrWhiteSpace(record.image_url) && record.channel_name == "memitos-y-animalitos\ud83e\udd21")
+                                    .Select(record => record.image_url.Trim())
+                                    .ToList();
+
+                    _isMemeUrlsLoaded = true;
                 }
 
                 Console.WriteLine("Filtered URLs read from CSV:");
@@ -136,8 +145,12 @@ namespace Recuerdense_Bot
         private static async Task RegisterCommandsAsync()
         {
             var sendCommand = new SlashCommandBuilder()
-                .WithName("send")
-                .WithDescription("Send a random image from the list");
+                .WithName("imagen")
+                .WithDescription("Envia una imagen ramdom");
+
+            var sendMemeCommand = new SlashCommandBuilder()
+                .WithName("meme")
+                .WithDescription("Envia un meme ramdom");
 
             // Replace 'your_guild_id_here' with your actual guild ID
             var guildId = ulong.Parse(Environment.GetEnvironmentVariable("GUILD_ID") ?? throw new InvalidOperationException()); // Example: 123456789012345678
@@ -148,18 +161,24 @@ namespace Recuerdense_Bot
                 await guild.DeleteApplicationCommandsAsync(); // Clear existing commands in the guild
                 await _client.Rest.DeleteAllGlobalCommandsAsync(); // Optionally clear global commands
                 await guild.CreateApplicationCommandAsync(sendCommand.Build());
+                await guild.CreateApplicationCommandAsync(sendMemeCommand.Build());
             }
 
-            Console.WriteLine("Slash command /send registered for guild");
+            Console.WriteLine("Slash command /imagen and /meme registered for guild");
         }
 
         private async Task HandleInteractionAsync(SocketInteraction interaction)
         {
             if (interaction is SocketSlashCommand command)
             {
-                if (command.Data.Name == "send")
+                if (command.Data.Name == "imagen")
                 {
                     await SendCommand();
+                }
+                
+                else if (command.Data.Name == "meme")
+                {
+                    await SendMeme();
                 }
             }
         }
@@ -171,6 +190,18 @@ namespace Recuerdense_Bot
                 if (_imageUrls != null && _imageUrls.Count > 0)
                 {
                     Random.Next(_imageUrls.Count);
+                    await PostRandomImageUrl();
+                }
+            }
+        }
+
+        private async Task SendMeme()
+        {
+            if (_isMemeUrlsLoaded)
+            {
+                if (_memeUrls != null && _memeUrls.Count > 0)
+                {
+                    Random.Next(_memeUrls.Count);
                     await PostRandomImageUrl();
                 }
             }
@@ -269,6 +300,7 @@ namespace Recuerdense_Bot
         {
             public string image_url { get; set; }
             public string has_spoilers { get; set; }
+            public string channel_name { get; set; }
         }
     }
 }
