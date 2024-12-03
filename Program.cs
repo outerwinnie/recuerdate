@@ -118,7 +118,8 @@ namespace Recuerdense_Bot
                     _memeUrls = csvReader.GetRecords<YourRecordClass>()
                                     .Where(record => 
                                         !string.IsNullOrWhiteSpace(record.image_url) && 
-                                        record.channel_name == "memitos-y-animalitos🤡") // Filter by channel_name only
+                                        !string.IsNullOrWhiteSpace(record.channel_name) && 
+                                        record.channel_name.Trim().Equals("memitos-y-animalitos🤡", StringComparison.OrdinalIgnoreCase)) // Case-insensitive and trim comparison
                                     .Select(record => record.image_url.Trim())
                                     .ToList();
 
