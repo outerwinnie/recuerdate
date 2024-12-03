@@ -108,6 +108,15 @@ namespace Recuerdense_Bot
                 using (var reader = new StringReader(csvData))
                 using (var csvReader = new CsvReader(reader, new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)))
                 {
+                    
+                    var records = csvReader.GetRecords<YourRecordClass>().ToList();
+                    
+                    foreach (var record in records)
+                    {
+                        Console.WriteLine($"Record: {record.channel_name} | {record.image_url} | {record.has_spoilers}");
+                    }
+
+                    
                     _imageUrls = csvReader.GetRecords<YourRecordClass>()
                                     .Where(record => !string.IsNullOrWhiteSpace(record.image_url) && record.has_spoilers != "yes")
                                     .Select(record => record.image_url.Trim())
@@ -122,7 +131,7 @@ namespace Recuerdense_Bot
                                         record.channel_name.Trim().Equals("memitos-y-animalitos🤡", StringComparison.OrdinalIgnoreCase)) // Case-insensitive and trim comparison
                                     .Select(record => record.image_url.Trim())
                                     .ToList();
-
+                    
                     _isMemeUrlsLoaded = true;
                     
                     Console.WriteLine("Filtered URLs read from CSV:");
@@ -130,12 +139,6 @@ namespace Recuerdense_Bot
                     {
                         Console.WriteLine(url);
                     }
-                }
-
-                Console.WriteLine("Filtered URLs read from CSV:");
-                foreach (var url in _memeUrls)
-                {
-                    Console.WriteLine(url);
                 }
             }
             else
