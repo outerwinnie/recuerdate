@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using CsvHelper;
 using Discord;
 using Discord.WebSocket;
@@ -278,9 +278,10 @@ namespace Recuerdense_Bot
                     var record = _allRecords?.FirstOrDefault(r => r.image_url.Trim() == randomUrl);
                     string uploader = record?.name ?? "Unknown";
 
+                    Console.WriteLine(uploader);
+
                     var embed = new EmbedBuilder()
                         .WithImageUrl(randomUrl)
-                        Console.WriteLine(uploader);
                         .WithColor(Color.Blue)
                         .Build();
 
