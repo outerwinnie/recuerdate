@@ -275,9 +275,13 @@ namespace Recuerdense_Bot
                     int index = Random.Next(_imageUrls.Count);
                     string randomUrl = _imageUrls[index];
                     // Find the record for this URL
+                    var record = _allRecords?.FirstOrDefault(r => r.image_url.Trim() == randomUrl);
+                    string uploader = record?.name ?? "Unknown";
+
                     var embed = new EmbedBuilder()
                         .WithImageUrl(randomUrl)
                         .WithTitle("Imagen aleatoria")
+                        .WithDescription($"Subido por: {uploader}")
                         .WithColor(Color.Blue)
                         .Build();
 
