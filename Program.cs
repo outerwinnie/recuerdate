@@ -235,36 +235,6 @@ namespace Recuerdense_Bot
             }
         }
 
-        private async Task ScheduleNextPost()
-        {
-            var nowUtc = DateTime.UtcNow;
-            var spainTime = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, SpainTimeZone);
-            
-            // Specify that nextPostTimeSpain is unspecified in terms of kind because we will convert it to a specific time zone
-            var nextPostTimeSpain = DateTime.SpecifyKind(DateTime.Today.Add(_postTimeSpain), DateTimeKind.Unspecified);
-
-            if (nextPostTimeSpain <= spainTime)
-            {
-                // If the time has already passed for today, schedule for tomorrow
-                nextPostTimeSpain = nextPostTimeSpain.AddDays(1);
-            }
-
-            // Convert the unspecified time to Spain time zone and then to UTC
-            nextPostTimeSpain = TimeZoneInfo.ConvertTimeToUtc(nextPostTimeSpain, SpainTimeZone);
-
-            // Calculate the delay
-            var delay = nextPostTimeSpain - nowUtc;
-
-            Console.WriteLine($"Scheduling next post in {delay.TotalMinutes} minutes.");
-
-            await Task.Delay(delay);
-
-            await PostRandomImageUrl();
-
-            // Schedule the next post
-            await ScheduleNextPost();
-        }
-
         private static async Task<string?> DownloadCsvFromGoogleDrive()
         {
             try
