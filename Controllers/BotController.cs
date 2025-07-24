@@ -19,8 +19,8 @@ public class BotController : ControllerBase
     {
         try
         {
-            await _bot.PostRandomImageUrl();
-            return Ok("Image sent successfully.");
+            var uploader = await _bot.PostRandomImageUrl();
+            return Ok(new { uploader });
         }
         catch (Exception ex)
         {

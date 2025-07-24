@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using CsvHelper;
 using Discord;
 using Discord.WebSocket;
@@ -264,8 +264,9 @@ namespace Recuerdense_Bot
             }
         }
 
-        public async Task PostRandomImageUrl()
+        public async Task<string> PostRandomImageUrl()
         {
+            string uploader = "Unknown";
             if (_client != null)
             {
                 var channel = _client.GetChannel(_channelId) as IMessageChannel;
@@ -276,17 +277,18 @@ namespace Recuerdense_Bot
                     string randomUrl = _imageUrls[index];
                     // Find the record for this URL
                     var record = _allRecords?.FirstOrDefault(r => r.image_url.Trim() == randomUrl);
-                    string uploader = record?.name ?? "Unknown";
+                    uploader = record?.name ?? "Unknown";
 
                     Console.WriteLine(uploader);
 
-await channel.SendMessageAsync(randomUrl);
+                    await channel.SendMessageAsync(randomUrl);
                 }
                 else
                 {
                     Console.WriteLine("No URLs available.");
                 }
             }
+            return uploader;
         }
         
         public async Task PostRandomMemeUrl()
