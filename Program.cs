@@ -280,8 +280,7 @@ namespace Recuerdense_Bot
 
                     var embed = new EmbedBuilder()
                         .WithImageUrl(randomUrl)
-                        .WithTitle("Imagen aleatoria")
-                        .WithDescription($"Subido por: {uploader}")
+                        Console.WriteLine(uploader);
                         .WithColor(Color.Blue)
                         .Build();
 
