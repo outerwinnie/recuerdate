@@ -147,9 +147,6 @@ namespace Recuerdense_Bot
             
             // Register commands
             await RegisterCommandsAsync();
-
-            // Schedule the first post
-            await ScheduleNextPost();
         }
 
         private static async Task RegisterCommandsAsync()
