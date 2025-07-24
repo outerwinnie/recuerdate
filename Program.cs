@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using CsvHelper;
 using Discord;
 using Discord.WebSocket;
@@ -280,12 +280,7 @@ namespace Recuerdense_Bot
 
                     Console.WriteLine(uploader);
 
-                    var embed = new EmbedBuilder()
-                        .WithImageUrl(randomUrl)
-                        .WithColor(Color.Blue)
-                        .Build();
-
-                    await channel.SendMessageAsync(embed: embed);
+await channel.SendMessageAsync(randomUrl);
                 }
                 else
                 {
