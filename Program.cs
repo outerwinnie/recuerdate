@@ -14,6 +14,7 @@ namespace Recuerdense_Bot
     {
         private static List<string>? _imageUrls;
         private static List<string>? _memeUrls;
+        private static List<YourRecordClass>? _allRecords; // Store all records globally
         private static readonly Random Random = new Random();
         private static DiscordSocketClient? _client;
         private static ulong _channelId;
@@ -101,7 +102,7 @@ namespace Recuerdense_Bot
                 {
                     // Read all records into a list first
                     var allRecords = csvReader.GetRecords<YourRecordClass>().ToList();
-        
+                    _allRecords = allRecords; // Store globally
                     // Filter for _imageUrls (without considering channel_name)
                     _imageUrls = allRecords
                         .Where(record => !string.IsNullOrWhiteSpace(record.image_url) && record.has_spoilers != "yes")
@@ -273,7 +274,14 @@ namespace Recuerdense_Bot
                 {
                     int index = Random.Next(_imageUrls.Count);
                     string randomUrl = _imageUrls[index];
-                    await channel.SendMessageAsync(randomUrl);
+                    // Find the record for this URL
+                    var embed = new EmbedBuilder()
+                        .WithImageUrl(randomUrl)
+                        .WithTitle("Imagen aleatoria")
+                        .WithColor(Color.Blue)
+                        .Build();
+
+                    await channel.SendMessageAsync(embed: embed);
                 }
                 else
                 {
@@ -306,6 +314,7 @@ namespace Recuerdense_Bot
             public string image_url { get; set; }
             public string has_spoilers { get; set; }
             public string channel_name { get; set; }
+            public string name { get; set; } // Uploader's name
         }
     }
 }
