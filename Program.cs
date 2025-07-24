@@ -19,7 +19,6 @@ namespace Recuerdense_Bot
         private static ulong _channelId;
         private static string? _fileId;
         private static string? _credentialsPath;
-        private static TimeSpan _postTimeSpain;
         private static readonly TimeZoneInfo SpainTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Central European Standard Time");
         private static bool _isImageUrlsLoaded; // Flag to track if image URLs are loaded
         private static bool _isMemeUrlsLoaded; // Flag to track if image URLs are loaded
