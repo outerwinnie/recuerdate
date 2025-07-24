@@ -53,10 +53,9 @@ namespace Recuerdense_Bot
             var channelIdStr = Environment.GetEnvironmentVariable("DISCORD_CHANNEL_ID");
             _fileId = Environment.GetEnvironmentVariable("GOOGLE_DRIVE_FILE_ID");
             _credentialsPath = Environment.GetEnvironmentVariable("GOOGLE_CREDENTIALS_PATH");
-            var postTimeStr = Environment.GetEnvironmentVariable("POST_TIME");
 
             // Check if token, channelId, fileId, credentialsPath, or postTime is null or empty
-            if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(channelIdStr) || string.IsNullOrEmpty(_fileId) || string.IsNullOrEmpty(_credentialsPath) || string.IsNullOrEmpty(postTimeStr))
+            if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(channelIdStr) || string.IsNullOrEmpty(_fileId) || string.IsNullOrEmpty(_credentialsPath))
             {
                 Console.WriteLine("Environment variables are not set correctly.");
                 return;
@@ -66,13 +65,6 @@ namespace Recuerdense_Bot
             if (!ulong.TryParse(channelIdStr, out _channelId))
             {
                 Console.WriteLine("Invalid DISCORD_CHANNEL_ID format.");
-                return;
-            }
-
-            // Parse post time
-            if (!TimeSpan.TryParse(postTimeStr, out _postTimeSpain))
-            {
-                Console.WriteLine("Invalid POST_TIME format. It must be in the format HH:mm:ss.");
                 return;
             }
             
